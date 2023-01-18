@@ -1,0 +1,13 @@
+(load "wabi-lib/l1.wabi")
+
+(defn fib
+  (n)
+  (if (< n 2) n
+    (+ (fib (- n 1))
+       (fib (- n 2)))))
+
+(defn main
+  _
+  (fib 10))
+
+(spit "image.fasl" main)

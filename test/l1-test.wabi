@@ -1,0 +1,249 @@
+(test (id (+ 2 3)) 5)
+(test (list* 1 2 (list 3 4)) (list 1 2 3 4))
+(test (foldl + 0 ()) 0)
+(test (foldl + 0 (list 1 2 3)) 6)
+(test (foldl + 10 (list 1 2 3)) 16)
+(test (apply + (list 1 2 3)) 6)
+
+(test (conc) ())
+(test (conc ()) ())
+(test (conc () ()) ())
+(test (conc (ran 3) (map (part + 3) (ran 3))) (ran 6))
+(test (conc(ran 3)
+           (map (part + 3) (ran 3))
+           (map (part + 6) (ran 3)))
+      (ran 9))
+
+(test (if) :nil)
+
+(test (if :t) :t)
+(test (if 10) 10)
+(test (if :f) :f)
+(test (if :nil) :nil)
+
+(test (if :nil "true") :nil)
+(test (if :f "true") :nil)
+(test (if :t "true") "true")
+(test (if 10 "true") "true")
+
+(test (odds ()) ())
+(test (evens ()) ())
+(test (odds (qs 1)) (qs 1))
+(test (evens (qs 1)) ())
+(test (odds (list 1 2 3 4 5 6 8)) (list 1 3 5 8))
+(test (evens (list 1 2 3 4 5 6 8)) (list 2 4 6))
+
+
+(test (when :t 20 10) 10)
+(test (when :f 20 10) :nil)
+(test (unless :t 20 10) :nil)
+(test (unless :f 20 10) 10)
+
+(test (prompt x (control x k (k 10))) 10)
+(test (prompt x 10) 10)
+(test (prompt x 10 20) 20)
+(test (+ 1 (prompt x (control x k 20))) 21)
+(test (+ 1 (prompt x (control x k 20 10))) 11)
+(test (prompt x (control x k (fn? k))) :f)
+(test (prompt x (control x k (fx? k))) :f)
+(test (* 2 (prompt x (+ 1 (control x k (k 3))))) 8)
+(test (* 2 (prompt x (+ 1 (control x k (k (k 3)))))) 10)
+(test (* 2 (prompt x (prompt y (+ 1 (control y ky (+ 2 (control x kx (ky (kx 3))))))))) 12)
+
+(test
+ (rec recur (a (list 0 1) r ())
+   (if
+       (= () a) (rev r)
+     (recur (popl a) (list* (inc (left a)) r))))
+ (list 1 2))
+
+(test ((list 1 2 3 4 5) 0) 1)
+(test ((list 1 2 3 4 5) 1) 2)
+(test ((list 1 2 3 4 5) 2) 3)
+(test ((list 1 2 3 4 5) 3) 4)
+(test ((list 1 2 3 4 5) 4) 5)
+(test ((list 1 2 3 4 5) 5) :nil)
+
+(test (ran 0) ())
+(test (ran 1) (list 0))
+(test (ran 2) (list 0 1))
+(test (ran (- 1)) ())
+
+(test (+) 0)
+(test (+ 2) 2)
+(test (+ 2 2) 4)
+
+(test (- 2) -2)
+(test (- 2 2) 0)
+
+(test (*) 1)
+(test (* 2) 2)
+(test (* 2 2) 4)
+
+(test (/ 4 1) 4)
+(test (/ 4 2) 2)
+(test (/ 4 3) 1)
+
+(test (= 10) :t)
+(test (= 10 (+ 1 9)) :t)
+(test (= 10 (+ 1 9) (* 2 5)) :t)
+(test (= 10 (+ 1 9) (* 4 4)) :f)
+
+(test (> 10) :t)
+(test (> 20 10) :t)
+(test (> 30 20 10) :t)
+(test (> 30 20 21) :f)
+
+(test (< 10) :t)
+(test (< 10 20) :t)
+(test (< 10 20 30) :t)
+(test (< 10 20 19) :f)
+
+(test (all? (part < 0) ()) :t)
+(test (all? (part < 0) (list 1 2 3)) :t)
+(test (all? (part < 0) (list 1 0 3)) :f)
+
+(test (some? (part < 0) ()) :f)
+(test (some? (part < 0) (list 1 2 3)) :t)
+(test (some? (part < 0) (list 1 0 -1)) :t)
+
+(test (and) :t)
+(test (and :f) :f)
+(test (and :nil) :f)
+
+(test (and :x) :t)
+(test (and 10) :t)
+(test (and :t 10) :t)
+(test (and :nil 10) :f)
+(test (and :f 10) :f)
+(test (and :x 10) :t)
+
+(test (or) :f)
+(test (or :f) :f)
+(test (or :nil) :f)
+(test (or :x) :t)
+(test (or 10) :t)
+(test (or :f 10) :t)
+(test (or :nil 10) :t)
+(test (or :t 10) :t)
+(test (or :x 10) :t)
+
+(test (let (a 1 b 2) (+ a b)) 3)
+(test (let (a 1 b 2) (+ a b) 10) 10)
+
+(test (take 0 (ran 2)) ())
+(test (take 1 (ran 2)) (list 0))
+(test (take 2 (ran 2)) (list 0 1))
+(test (take 3 (ran 2)) (list 0 1))
+
+(test (drop 0 (ran 2)) (list 0 1))
+(test (drop 1 (ran 2)) (list 1))
+(test (drop 2 (ran 2)) ())
+(test (drop 3 (ran 2)) ())
+
+(test (map inc) ())
+
+(test (map inc (ran 3)) (list 1 2 3))
+(test (map + (ran 3) (ran 4)) (list 0 2 4))
+(test (map + (ran 4) (ran 3)) (list 0 2 4))
+
+(test (first (part < 3) (ran 10)) 4)
+(test (first (part < 3) (ran 3)) :nil)
+(test (in? 3 (ran 3)) :f)
+(test (in? 3 (ran 10)) :t)
+(test (drop? (part > 4) (ran 2)) ())
+(test (drop? (part > 4) (ran 6)) (list 4 5))
+(test (take? (part > 4) (ran 6)) (list 0 1 2 3))
+(test (take? (part > 4) (ran 2)) (list 0 1))
+(test (len ()) 0)
+(test (len (ran 20)) 20)
+
+(test (len (ran 2)) 2)
+
+(test (-> 3) 3)
+(test (-> 3 (ran)) (ran 3))
+(test (-> 3 (ran) (apply +) (* 3)) (* 3 (apply + (ran 3))))
+
+(test ((ran 3) 0) 0)
+(test ((ran 3) 1) 1)
+(test ((ran 3) 2) 2)
+(test ((ran 3) 3) :nil)
+
+(test (map (afn (+ it 1)) (ran 5)) (map inc (ran 5)))
+
+(defn fib
+  (n)
+  (if (< n 2) n
+    (+ (fib (- n 1))
+       (fib (- n 2)))))
+
+(test (map (afn (if (zero? it) 0 (one? it) 1 (+ (me (- it 1)) (me (- it 2))))) (ran 5)) (map fib (ran 5)))
+
+(test (apply (afn (apply + they)) (ran 10)) (apply + (ran 10)))
+
+(test (list?) :t)
+(test (list? (list)) :t)
+(test (list? (list 1)) :t)
+(test (list? (list 1) (list 2)) :t)
+(test (list? (list 1) (list)) :t)
+
+(test (num?) :t)
+(test (num? 10) :t)
+(test (num? :nil) :f)
+(test (num? 10 20) :t)
+(test (num? 10 :nan) :f)
+
+(test (sym?) :t)
+(test (sym? (q foo)) :t)
+(test (sym? :nil) :f)
+(test (sym? (q foo) (q bar)) :t)
+(test (sym? (q foo) :nan) :f)
+
+(test (kwd?) :t)
+(test (kwd? ()) :f)
+(test (kwd? :nil) :t)
+(test (kwd? 10) :f)
+(test (kwd? :foo :bar) :t)
+(test (kwd? :foo (q not-an-kwd)) :f)
+
+(test (bin?) :t)
+(test (bin? "foo") :t)
+(test (bin? :foo) :f)
+(test (bin? "foo" "bar") :t)
+(test (bin? "foo" :bar) :f)
+
+(test (env?) :t)
+(test (env? (env)) :t)
+(test (env? :env) :f)
+(test (env? (env) (env)) :t)
+(test (env? (env) :nil) :f)
+
+
+(cmt (test (cont?) :t)
+
+     (test (prompt x (control x k (cont? k))) :t)
+     (test (prompt x (control x k (cont? :nil))) :f)
+     (test (prompt x (control x k (cont? k k))) :t)
+     (test (prompt x (control x k (cont? k :nil))) :f))
+
+(test (fx?) :t)
+(test (fx? if) :t)
+(test (fx? :if) :f)
+(test (fx? if when) :t)
+(test (fx? if :when) :f)
+
+(test (fn?) :t)
+(test (fn? list) :t)
+(test (fn? if) :f)
+(test (fn? list apply) :t)
+(test (fn? list when) :f)
+
+
+(pr (list :kwd "foo")(kwd "foo"))
+
+(test (kwd "foo") :foo)
+(test (kwd "nil") :nil)
+(test (kwd "") :)
+
+(test (sym "foo") (q foo))
+(test (name (q foo)) "foo")

@@ -1,0 +1,28 @@
+(defn param
+  ()
+  (defn me
+    (update :& as)
+    (ctrl me resume
+          (list :fluid/param resume (fn (it) (apply update (list* it as)))))))
+
+(defn restart?
+  (rs)
+  (and (list? rs) (= (left rs)) :fluid/param))
+
+(defn bind
+  (p v fun :& as)
+  (rec bind (v v rs (prmt p (apply fun as)))
+    (if (restart? rs)
+        (bind ((rs 2) v) (prmt p ((rs 1) v)))
+      rs)))
+
+(defx flet
+    e (ps :& xs)
+  (rec flet (j 0)
+    (if (>= j (len ps)) (eval e (list* do xs))
+      (bind (eval e (ps j)) (eval e (ps (inc j))) flet (+ j 2)))))
+
+(cmt
+ (let (x (param) y (param))
+   (flet (x 123 y 22)
+     (x + (y id)) (x id))))

@@ -1,0 +1,25 @@
+(def a
+  (param))
+
+(def b
+  (param))
+
+(test
+ (flet () :foo) :foo)
+
+(test
+ (flet (a 10) (a id)) 10)
+
+(test
+ (flet (a 10) (a (always 20))) 10)
+
+(test
+ (flet (a 10) (a (always 20)) (a id)) 20)
+
+(flet (a 10 b 20)
+  (test (a id) 10)
+  (test (b id) 20)
+  (a (always 1023))
+  (b (always 4095))
+  (test (a id) 1023)
+  (test (b id) 4095))

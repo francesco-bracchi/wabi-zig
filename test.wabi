@@ -1,0 +1,6 @@
+(load "test/utils.wabi")
+(load "test/l1-test.wabi")
+(load "test/fluid-test.wabi")
+(load "test/amb-test.wabi")
+(load "test/condition-test.wabi")
+(exit 0)

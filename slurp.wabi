@@ -1,0 +1,4 @@
+
+(def fib (slurp "fib.fasl"))
+
+(fib 10)

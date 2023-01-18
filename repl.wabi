@@ -1,0 +1,77 @@
+(load "wabi-lib/l1.wabi")
+(load "wabi-lib/fluid.wabi")
+(load "wabi-lib/condition.wabi")
+(load "wabi-lib/amb.wabi")
+
+(def *prompt* (param))
+(def *count* (param))
+(def *env* (param))
+
+(spit "repl.fasl"
+      (let (env0 (ext (env)))
+
+        (def header
+  "
+ __      ____ _| |__ (_)
+ \\ \\ /\\ / / _` | '_ \\| |
+  \\ V  V / (_| | |_) | |
+   \\_/\\_/ \\__,_|_.__/|_| :version 0.0.1
+
+")
+
+        (defn to-atom
+          (code)
+          (case code
+            1 :out-of-memory
+            3 :argument-error
+            3 :arity-error
+            5 :read-error
+            7 :unbound-symbol
+            9 :empty-continuation
+            10 :missing-mark
+            11 :bound-symbol
+            12 :unknown-builtin
+            13 :impossible
+            14 :invalid-combiner
+            15 :generic-error
+            (list :error code)))
+
+        (defn repl
+          ()
+          (wrt (*prompt* id))
+          (wrt "(")
+          (pr (*count* inc))
+          (wrt ")> ")
+          (aif (rd)
+            (do (prn (eval (*env* id) it))
+                (repl))
+            (do (prn :exit)
+                (exit 0))))
+
+        (defx signal-builtin-condition
+          e (code val)
+          (signal :condition/builtin code val e))
+
+        (defn handler
+          (restart code val env)
+          (prn :err code)
+          (if (= code 1)
+              (peval env
+                     (list on-error signal-builtin-condition)
+                     (list restart val))
+            (do (wrt "current value: ") (prn val)
+                (wrt "substitute with:> ")
+                (eval env (list restart (rd))))))
+
+        (defn start
+          ()
+          (flet (*prompt* "wabi" *count* 0 *env* env0)
+            (on-error signal-builtin-condition)
+            (condition-case :condition/builtin handler repl)
+            (cmt (prn :exit)
+                 (exit 0))))
+
+        (defn main
+          xs
+          (wrt header)
+          (start))))

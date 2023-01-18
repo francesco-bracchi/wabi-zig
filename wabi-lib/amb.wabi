@@ -1,0 +1,23 @@
+(defx amb
+    e xs
+  (ctrl amb ret
+        (rec loop (j 0)
+          (if (>= j (len xs)) (list :amb/fail)
+            (let (res (prmt amb (list :amb/ok (ret (eval e (xs j))))))
+              (case (res 0)
+                :amb/fail (loop (inc j))
+                :amb/ok (res 1)))))))
+
+(defx with-amb
+    e xs
+  (let (res (prmt amb (list :amb/ok (eval e (list* do xs)))))
+    (case (res 0)
+      :amb/ok (res 1)
+      :amb/fail (signal :amb/fail))))
+
+(defx let-a
+    e (bs :& xs)
+  (eval e
+    (list* let
+           (apply conc (map (fn (n as) (list n (list* amb as))) (odds bs) (evens bs)))
+           xs)))

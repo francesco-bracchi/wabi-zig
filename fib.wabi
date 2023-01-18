@@ -1,0 +1,41 @@
+(load "wabi-lib/l1.wabi")
+
+(defn fib
+  (n)
+  (do (prn :fib n))
+  (if (< n 2) n
+    (+ (fib (- n 1))
+       (fib (- n 2)))))
+
+(defx time
+    e xs
+  (let (t0 (clock) v (eval e (list* do xs)) t (clock))
+    (wrt "time: ")
+    (pr (- t t0))
+    (wrt "ms\n")
+    v))
+
+(defn once
+  (n)
+  (prn (time (fib n))))
+
+(defn fib-main
+  as
+  (each (comp once rd-str) as)
+  (wrt "\n")
+  (exit 0))
+
+(cmt (spit "fib.fasl" fib-main))
+
+(cmt (pr (fib 20)))
+
+(defn gfib
+  (n)
+  (condition-case
+      :condition/builtin
+      (fn (resume ucode v)
+        (prn :code ucode :val v)
+        (if (and (= ucode 1) (= v (q n)))
+            (resume 1)
+          (resignal :condition/builtin resume ucode v)))
+    fib n))

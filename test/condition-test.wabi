@@ -1,0 +1,36 @@
+(test
+ (with-guard 42 :nope (_) :nope)
+ 42)
+
+(test
+ (with-guard (signal :foo :info)
+             :foo (k i) i)
+ :info)
+
+(test
+ (with-guard (+ 1 (signal :foo))
+             :foo (k) (k 22))
+ 23)
+
+(test (with-guard
+       (with-guard (list (signal :ex-foo)
+                         (signal :ex-bar)
+                         (signal :ex-baz))
+                   :ex-foo (k) (k 1001)
+                   :ex-baz (k) (k 12))
+       :ex-bar (k) (k 42))
+      (q (1001 42 12)))
+
+ (let ()
+   (defn div
+     (n . ds)
+     (fold (fn (n0 d)
+             (if
+                 (= d 0) (signal :division-by-zero {:num n0 :den d})
+               (/ n0 d)))
+           n
+           ds))
+   (test
+    (with-guard (div 99 1 0 2)
+                :division-by-zero (k info) (k (info :num)))
+    49))

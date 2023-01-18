@@ -1,0 +1,10 @@
+* DONE create derived combiners data types
+* DONE implement fn and fx
+* DONE equality semantic
+* DONE do the prompt/control stuff
+* choose
+** Numeric tower
+** Map
+*** And in case sets? (i.e. maps to boolean)
+** (Long) lists
+** IO

@@ -1,0 +1,32 @@
+(defn signal
+  (tag :& args)
+  (let (mark (list signal tag))
+    (ctrl mark resume
+          (list :sigl resume args))))
+
+
+(defn condition-case
+  (tag handler thunk :& args)
+  (let (mark (list signal tag))
+    (rec result (res (prmt mark (list :succ (apply thunk args))))
+      (case (res 0)
+        :succ (res 1)
+        :sigl (let (resume (res 1) args (res 2))
+                (apply handler
+                       (afn (result (prmt mark (resume it))))
+                       args))))))
+
+
+(defx with-guard
+    e (x :& hs)
+  (rec guard (j 0)
+    (if (>= j (len hs)) (eval e x)
+        (let (tag (hs j) args (hs (+ j 1)) body (hs (+ j 2)))
+          (condition-case (eval e tag)
+              (eval e (list fn args body))
+            guard (+ j 3))))))
+
+
+(defn resignal
+  (tag restart :& as)
+  (restart (apply signal tag as)))

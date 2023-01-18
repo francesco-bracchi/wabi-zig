@@ -1,0 +1,368 @@
+(def q
+  (fx _ (x) x))
+
+
+(def qs
+  (fx _ xs xs))
+
+
+(def cmt
+  (fx e xs :nil))
+
+
+(def env
+  (fx e _ e))
+
+
+(def apply
+  (wrap
+   (fx _ (o :& as)
+     (eval (env) (list* (unwrap o) (conc (popr as) (right as)))))))
+
+
+(def id
+  (wrap q))
+
+
+(def list
+  (wrap qs))
+
+
+(def defx
+  (fx e (n e1 as :& bs)
+    (eval e
+      (list def n (list* fx e1 as bs)))))
+
+
+(def defn
+  (fx e (n as :& bs)
+    (eval e
+      (list def n (list* fn as bs)))))
+
+
+(defx prmt
+    e (t :& bs)
+  (eval e
+    (list* prompt (eval e t) bs)))
+
+
+(defx ctrl
+    e (t :& bs)
+  (eval e
+    (list* control (eval e t) bs)))
+
+
+(defn foldr
+  (f es i)
+  (if (= () es) i
+    (foldr f (popr es) (f (right es) i))))
+
+
+(defn foldl
+    (f i es)
+  (if
+   (= () es) i
+   (foldl f (f i (left es)) (popl es))))
+
+
+(defn part
+  (f :& es)
+  (fn bs (apply f (conc es bs))))
+
+
+(defn flip
+    (f)
+    (fn (a b :& es) (apply f (list* b a es))))
+
+
+(defn cons
+  (x xs)
+  (list* x xs))
+
+
+(def snoc (flip list*))
+
+(defn rev
+  (l)
+  (foldl snoc () l))
+
+
+(defn always
+    (v)
+  (fn _ v))
+
+
+(defn all?
+    (t? as)
+  (if
+   (= () as) :t
+   (t? (left as)) (all? t? (popl as))
+   :f))
+
+
+(defn some?
+    (t? as)
+  (if
+   (= () as) :f
+   (t? (left as)) :t
+   (some? t? (popl as))))
+
+
+(defn get
+  (f :& as)
+  (foldl (fn (f a) (f a)) f as))
+
+
+(defn odds
+  (es)
+  (if (= es ()) () (list* (left es) (evens (popl es)))))
+
+
+(defn evens
+  (es)
+  (if (= es ()) () (odds (popl es))))
+
+
+(defn map-one
+  (f as)
+  (if (= () as) () (list* (f (left as)) (map-one f (popl as)))))
+
+
+(defn map-many
+  (f as)
+  (if (some? (part = ()) as) ()
+    (list* (apply f (map-one left as))
+           (map-many f (map-one popl as)))))
+
+
+(defn map
+  (f :& as)
+  (if (= () as) () (map-many f as)))
+
+
+(defn each-many
+  (f as)
+  (if (some? (part = ()) as) :nil
+    (do (apply f (map-one left as))
+        (each-many f (map-one popl as)))))
+
+
+(defn each
+  (f :& as)
+  (if (= () as) :nil (each-many f as)))
+
+
+(defx rec
+    e (n bs :& xs)
+  (eval (ext e)
+    (list do
+          (list* defn n (odds bs) xs)
+          (list* n (evens bs)))))
+
+
+(defx let
+    e (bs :& xs)
+  (eval e (list* (list* fn (odds bs) xs) (evens bs))))
+
+
+(defn comp
+    fs
+    (foldl (fn (f g) (fn (x) (f (g x)))) id fs))
+
+
+ (def inc
+   (part + 1))
+
+
+ (def dec
+  (part (flip -) 1))
+
+
+(def zero?
+  (part = 0))
+
+
+(def one?
+  (part = 1))
+
+
+(def pos?
+  (part < 0))
+
+
+(def neg?
+  (part > 0))
+
+
+(defn take
+  (n as)
+  (rec take (j 0 r ())
+    (if
+      (>= j n) r
+      (>= j (len as)) r
+      (take (inc j) (*list r (as j))))))
+
+
+(defn drop
+    (n as)
+  (if
+   (= 0 n) as
+   (= () as) ()
+   (drop (dec n) (popl as))))
+
+
+(defn filter
+    (t? as)
+  (rec filter (rs () as as rs)
+    (if
+     (= () as) rs
+     (t? (left as)) (filter (*list rs (left as)) (popl as))
+     (filter rs (popl as)))))
+
+
+(defn remove
+    (t? as)
+  (filter (comp not t?) as))
+
+
+(defn first
+    (t? as)
+  (if
+   (= () as) :nil
+   (t? (left as)) (left as)
+   (first t? (popl as))))
+
+
+(defn in?
+    (a as)
+  (if
+    (= () as) :f
+    (= a (left as)) :t
+    (in? a (popl as))))
+
+
+(defn take?
+  (t? as)
+  (rec take? (j 0 rs () l (len as))
+    (if (or (>= j l) (not (t? (as j)))) rs
+      (take? (inc j) (*list rs (as j)) l))))
+
+
+(defn drop?
+    (t? as)
+  (if
+   (= () as) ()
+   (t? (left as)) (drop? t? (popl as))
+   as))
+
+
+(defn iter
+    (i f n)
+  (rec iter (i i n n xs ())
+    (if
+     (< n 1) xs
+     (iter (f i) (dec n) (*list xs i)))))
+
+
+(defn ran
+    (n)
+  (iter 0 inc n))
+
+
+(defx when
+    e (t? :& bs)
+  (eval e
+    (list if t? (list* do bs))))
+
+
+(defx or
+    e xs
+  (rec loop (j 0 l (len xs))
+    (if (>= j l) :f
+      (let (v (eval e (xs j)))
+        (if v :t (loop (inc j) l))))))
+
+
+(defx and
+    e xs
+  (rec loop (j 0 l  (len xs))
+    (if (>= j l) :t
+      (let  (v (eval e (xs j)))
+        (if v (loop (inc j) l) :f)))))
+
+
+(defx not
+    e xs
+  (rec loop (j 0 l (len xs))
+    (if (>= j l) :t
+      (let (v (eval e (xs j)))
+        (if v :f (loop (inc j) l))))))
+
+
+(defx unless
+    e (t? :& bs)
+  (eval e
+    (list if (list not t?) (list* do bs))))
+
+
+(defn prn
+  vs
+  (apply pr vs)
+  (wrt "\n"))
+
+(defn inspect
+  (v)
+  (prn v)
+  v)
+
+(defx awhen
+    e (t? :& bs)
+  (eval e
+    (list let (list (q it) t?)
+          (list* when (q it) bs))))
+
+
+(defx afn
+    e bs
+  (eval (ext e)
+    (list defn (q me) (q they)
+           (list* let (q (it (left they))) bs))))
+
+
+(defx afx
+    e bs
+  (eval (ext e)
+    (list defx (q me)
+          (q ctx) (q they)
+           (list* let (q (it (left they))) bs))))
+
+
+(defx aif
+    e (t? l r)
+  (eval e
+    (list let (list (q it) t?)
+          (list if (q it) l r))))
+
+
+(defx ->
+    e (a :& as)
+  (rec thread (x a j 0 l (len as))
+    (if (>= j l) (eval e x)
+      (thread (*list (as j) x)
+              (inc j)
+              l))))
+
+
+(defn call
+  (o :& as)
+  (apply o as))
+
+
+(defx case
+    e (v :& xs)
+  (let (v (eval e v))
+    (rec test (v (eval e v) j 0)
+      (if (>= j (len xs)) :nil
+        (= (dec j) (len xs)) (eval e (xs j))
+        (= (xs j) v) (eval e (xs (inc j)))
+        (test v (+ j 2))))))
