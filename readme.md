@@ -19,7 +19,7 @@ WORK IN PROGRESS DO NOT USE
 
 ## some principles
 
-1. control is first class through delimited continuations (``prompt`/`control` operators)
+1. control is first class through delimited continuations (`prompt`/`control` operators)
 
 2. syntax is first class via fexpressions (see kernel programming language), that implies environments are first class
 
