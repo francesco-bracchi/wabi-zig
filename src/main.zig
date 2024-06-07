@@ -18,7 +18,7 @@ fn memSize(_: anytype) !Mem.Size {
 
 fn run(vm: *Vm) void {
     vm.run() catch |e| {
-        std.os.exit(switch (e) {
+        std.process.exit(switch (e) {
             error.MemoryOverflow => 1,
             // error.OutOfGas => 2,
             error.ArgumentError => 3,
@@ -48,7 +48,7 @@ fn buildZigote(
         );
         defer file.close();
         const size = try file.getEndPos();
-        var data = try std.os.mmap(
+        const data = try std.os.mmap(
             null,
             size,
             std.os.PROT.READ,
@@ -88,93 +88,20 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    const args = std.process.argsAlloc(allocator) catch std.os.exit(255);
+    const args = std.process.argsAlloc(allocator) catch std.process.exit(255);
     errdefer std.process.argsFree(allocator, args);
     if (args.len <= 1) {
         std_err.print("missing file\n", .{}) catch {};
-        std.os.exit(255);
+        std.process.exit(255);
     }
     try wabi.sys.init(allocator, .{});
-    defer wabi.sys.deinit();
+    // defer wabi.sys.deinit();
 
-    const file_name = args[1];
+    // const file_name = args[1];
 
-    var vm = buildZigote(file_name, args[2..]) catch std.os.exit(255);
-    try wabi.sys.start();
-    if (wabi.sys.current) |*sys| try sys.enqueueVm(vm);
-    std.process.argsFree(allocator, args);
-    try wabi.sys.wait();
+    // const vm = buildZigote(file_name, args[2..]) catch std.process.exit(255);
+    // try wabi.sys.start();
+    // if (wabi.sys.current) |*sys| try sys.enqueueVm(vm);
+    // std.process.argsFree(allocator, args);
+    // try wabi.sys.wait();
 }
-
-// pub fn main() !void {
-//     // var std_in = std.io.getStdIn().reader();
-//     // var std_out = std.io.getStdOut().writer();
-//     var std_err = std.io.getStdErr().writer();
-
-//     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-//     defer _ = gpa.deinit();
-//     const allocator = gpa.allocator();
-
-//     const args = try std.process.argsAlloc(allocator);
-//     errdefer std.process.argsFree(allocator, args);
-
-//     if (args.len <= 1) {
-//         try std_err.print("missing file\n", .{});
-//         std.os.exit(1);
-//     }
-//     const file_name = args[1];
-//     const file = try std.fs.cwd().openFile(file_name, .{ .mode = .read_only });
-//     errdefer file.close();
-//     const size = try file.getEndPos();
-//     var data = try std.os.mmap(null, size, std.os.PROT.READ, std.os.MAP.SHARED, file.handle, 0);
-//     errdefer std.os.munmap(data);
-
-//     var orig = wabi.mem.Mem{
-//         .space = data,
-//         .heap = 8, // todo: read magic
-//         .allocator = allocator,
-//         .intern_table = wabi.mem.Mem.HashMap.init(allocator),
-//     };
-//     errdefer orig.intern_table.deinit();
-
-//     var vm = try Vm.init(.{
-//         .allocator = allocator,
-//         .mem_size = @intCast(size * 2),
-//     });
-
-//     defer vm.deinit();
-
-//     var ctx = try wabi.copy.Copy.init(&orig, &vm.mem, allocator);
-//     errdefer ctx.deinit();
-
-//     const orig_fun = orig.fromOffset(Val.Ptr, 8);
-//     const dest_fun = try ctx.one(orig_fun);
-//     const empty_env = try wabi.env.Env.root(&vm.mem, 0);
-//     const cont = try wabi.cont.Cont.push(null, &vm.mem, wabi.cont.Call, .{
-//         .combiner = dest_fun,
-//         .env = empty_env,
-//     });
-
-//     // var val_reader = vm.reader(std_in);
-//     // var val_writer = vm.writer(std_out);
-
-//     // try std_out.print("file: \"{s}\"\n", .{file_name});
-
-//     const val_args = try VectorList.create(&vm.mem, args.len - 2);
-//     const val_refs = val_args.refs();
-//     for (args[2..], val_refs) |arg, *ref| {
-//         const bin = try Val.from(&vm.mem, Block, arg);
-//         ref.set(&vm.mem, bin);
-//     }
-
-//     // try val_writer.writeVal(Val.cast(val_args));
-
-//     // _ = .{ val_reader, val_writer, args, size };
-//     // slurp
-//     std.os.munmap(data);
-//     file.close();
-//     std.process.argsFree(allocator, args);
-
-//     vm.cont = cont;
-//     vm.ctrl = Val.cast(val_args);
-// }

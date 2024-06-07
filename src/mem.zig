@@ -255,7 +255,7 @@ test "offset" {
     defer mem.deinit();
     const m0 = mem.heap;
     _ = try mem.one(TT);
-    var tt = try mem.one(TT);
+    const tt = try mem.one(TT);
     const os = mem.offsetOf(tt);
     try testing.expectEqual(os, @as(Mem.Size, @intCast(m0 + 2 * word_size)));
     try testing.expectEqual(mem.heap, m0 + 4 * word_size);
@@ -267,7 +267,7 @@ test "from offset" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
     _ = try mem.one(TT);
-    var tt = try mem.one(TT);
+    const tt = try mem.one(TT);
     const os = mem.offsetOf(tt);
     tt.* = tt0;
     const tt1 = mem.fromOffset(TT.Ptr, os);
@@ -280,7 +280,7 @@ test "allocate empty u8" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
     const m0 = mem.heap;
-    var x = try mem.alloc(0);
+    const x = try mem.alloc(0);
     try testing.expect(mem.heap == m0);
     try testing.expect(x.len == 0);
 }
@@ -289,7 +289,7 @@ test "allocate u8 within a word" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
     const m0 = mem.heap;
-    var x = try mem.alloc(1);
+    const x = try mem.alloc(1);
     try testing.expect(mem.heap == m0 + word_size);
     try testing.expect(x.len == 1);
 }
@@ -297,14 +297,14 @@ test "allocate u8 within a word" {
 test "allocate u8 with more than a word" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
-    var x = try mem.alloc(11);
+    const x = try mem.alloc(11);
     try testing.expect(x.len == 11);
 }
 
 test "allocate u8 exact words" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
-    var x = try mem.alloc(16);
+    const x = try mem.alloc(16);
     try testing.expect(x.len == 16);
 }
 
@@ -316,7 +316,7 @@ const II = packed struct {
 
     pub fn from(mem: *Mem, raw: []u8) !Ptr {
         const res = try mem.one(Self);
-        var selfData = try mem.alloc(raw.len);
+        const selfData = try mem.alloc(raw.len);
         for (selfData, 0..) |*b, j| b.* = raw[j];
         res.len = raw.len;
         return res;
@@ -334,8 +334,8 @@ const II = packed struct {
 test "intern" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
-    var x = try mem.intern(II, @constCast("t"));
-    var y = try mem.intern(II, @constCast("t"));
+    const x = try mem.intern(II, @constCast("t"));
+    const y = try mem.intern(II, @constCast("t"));
     try testing.expect(x == y);
 }
 

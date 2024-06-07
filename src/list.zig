@@ -346,7 +346,7 @@ test "create empty list" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
     const m0 = mem.heap;
-    var lst = try VectorList.from(&mem, .{});
+    const lst = try VectorList.from(&mem, .{});
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 0);
     try testing.expectEqual(mem.heap, m0 + 1 * @sizeOf(Word));
@@ -371,8 +371,8 @@ test "list left and right of an empty list is null" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
     var lst = try VectorList.from(&mem, .{});
-    var l = lst.left(&mem);
-    var r = lst.right(&mem);
+    const l = lst.left(&mem);
+    const r = lst.right(&mem);
     try testing.expectEqual(l, null);
     try testing.expectEqual(r, null);
 }
@@ -384,8 +384,8 @@ test "list left and right of a list" {
     const n1 = try Val.from(&mem, wabi.num.Fix, 37);
     const nums = [_]Val.Ptr{ n0, n1 };
     var lst = try VectorList.from(&mem, nums);
-    var l = lst.left(&mem);
-    var r = lst.right(&mem);
+    const l = lst.left(&mem);
+    const r = lst.right(&mem);
     try testing.expectEqual(l.?.fix, n0.fix);
     try testing.expectEqual(r.?.fix, n1.fix);
 }
@@ -464,7 +464,7 @@ test "list destructLeft empty" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
     var lst = try VectorList.from(&mem, .{});
-    var dst = try lst.destructLeft(&mem);
+    const dst = try lst.destructLeft(&mem);
     try testing.expectEqual(dst, null);
 }
 
@@ -476,7 +476,7 @@ test "list destructLeft nonempty" {
     const n1 = try Val.from(&mem, wabi.num.Fix, 37);
     const nums = [_]Val.Ptr{ n0, n1 };
     var lst = try VectorList.from(&mem, nums);
-    var dst = try lst.destructLeft(&mem);
+    const dst = try lst.destructLeft(&mem);
     try testing.expectEqual(dst.?.left.word, n0.word);
     try testing.expectEqual(dst.?.right.tag, .LVec);
     try testing.expectEqual(dst.?.right.len, 1);
@@ -513,7 +513,7 @@ test "concat" {
     const ns1 = [_]Val.Ptr{ n1, n0, n0 };
 
     var lst0 = try VectorList.from(&mem, ns0);
-    var lst1 = try VectorList.from(&mem, ns1);
+    const lst1 = try VectorList.from(&mem, ns1);
     var lst = try lst0.concat(&mem, lst1);
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 5);
@@ -550,7 +550,7 @@ test "copy list" {
     var ctx = try wabi.copy.Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
 
-    var ext = "(1 \"second\")";
+    const ext = "(1 \"second\")";
     const cur = try Val.fromString(&orig, ext);
     var nxt = try ctx.one(cur);
     var actual: [ext.len]u8 = undefined;

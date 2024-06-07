@@ -266,9 +266,9 @@ const memConfig = .{
 test "read the same symbol twice" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "(+ (+))";
+    const buf = "(+ (+))";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     _ = try read.readVal();
     try testing.expect(mem.intern_table.count() == 1);
@@ -277,9 +277,9 @@ test "read the same symbol twice" {
 test "read peek and pop on empty reader" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "";
+    const buf = "";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     try testing.expect(read.peek() == null);
     try testing.expect(read.pop() == null);
@@ -288,9 +288,9 @@ test "read peek and pop on empty reader" {
 test "read peek and pop on almost empty reader" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "f";
+    const buf = "f";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     try testing.expect(read.peek().? == 'f');
     try testing.expect(read.pop().? == 'f');
@@ -300,9 +300,9 @@ test "read peek and pop on almost empty reader" {
 test "read pop and peek on almost empty reader" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "f";
+    const buf = "f";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     try testing.expect(read.pop().? == 'f');
     try testing.expect(read.peek() == null);
@@ -311,9 +311,9 @@ test "read pop and peek on almost empty reader" {
 test "read peek doesn't consume" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "foo";
+    const buf = "foo";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var j: usize = 0;
     while (j < 3) : (j += 1)
@@ -323,9 +323,9 @@ test "read peek doesn't consume" {
 test "read pop consumes" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "foo";
+    const buf = "foo";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     try testing.expect(read.pop().? == 'f');
     try testing.expect(read.peek().? == 'o');
@@ -335,9 +335,9 @@ test "read pop consumes" {
 test "read skip whitespaces" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "";
+    const buf = "";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     read.skipWs();
     try std.testing.expect(true);
@@ -346,9 +346,9 @@ test "read skip whitespaces" {
 test "read skip whitespaces to the end" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "  ";
+    const buf = "  ";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     read.skipWs();
     try std.testing.expect(read.peek() == null);
@@ -357,9 +357,9 @@ test "read skip whitespaces to the end" {
 test "read skip whitespaces more" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = " \t\n\rfoo";
+    const buf = " \t\n\rfoo";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     read.skipWs();
     try std.testing.expect(read.peek().? == 'f');
@@ -368,9 +368,9 @@ test "read skip whitespaces more" {
 test "read bin" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = " \"this is string\"  ";
+    const buf = " \"this is string\"  ";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .BBlk);
@@ -380,9 +380,9 @@ test "read bin" {
 test "read bin with escape" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "\"\\\"\"";
+    const buf = "\"\\\"\"";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .BBlk);
@@ -392,31 +392,31 @@ test "read bin with escape" {
 test "read never ending bin" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "\"foo";
+    const buf = "\"foo";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
-    var val = read.readVal();
+    const val = read.readVal();
     try testing.expectError(error.ReadError, val);
 }
 
 test "read never ending bin with ecape" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = [_]u8{ '"', 'f', '\\' };
+    const buf = [_]u8{ '"', 'f', '\\' };
     var str = std.io.fixedBufferStream(&buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
-    var val = read.readVal();
+    const val = read.readVal();
     try testing.expectError(error.ReadError, val);
 }
 
 test "read symbol" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = " this-is-a-symbol  ";
+    const buf = " this-is-a-symbol  ";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .Sym);
@@ -427,9 +427,9 @@ test "read symbol" {
 test "read symbol with escape" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "foo\\ bar";
+    const buf = "foo\\ bar";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .Sym);
@@ -440,9 +440,9 @@ test "read symbol with escape" {
 test "read keyword" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = ":this-is-a-keyword";
+    const buf = ":this-is-a-keyword";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .Kwd);
@@ -453,9 +453,9 @@ test "read keyword" {
 test "read fix" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "123";
+    const buf = "123";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .Fix);
@@ -465,9 +465,9 @@ test "read fix" {
 test "read `-`" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "-";
+    const buf = "-";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     var asBin = val.sym.binOf(&mem);
@@ -478,9 +478,9 @@ test "read `-`" {
 test "read negative number" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "-123";
+    const buf = "-123";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .Fix);
@@ -490,9 +490,9 @@ test "read negative number" {
 test "read `-` prefixed symbol" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "--123";
+    const buf = "--123";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     var asBin = val.sym.binOf(&mem);
@@ -503,9 +503,9 @@ test "read `-` prefixed symbol" {
 test "read empty list" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "()";
+    const buf = "()";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .LVec);
@@ -515,9 +515,9 @@ test "read empty list" {
 test "read empty list with spaces" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = " (   )  ";
+    const buf = " (   )  ";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     var val = try read.readVal();
     try testing.expectEqual(val.tag(), .LVec);
@@ -527,9 +527,9 @@ test "read empty list with spaces" {
 test "read broken parenthesis" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "(";
+    const buf = "(";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     try testing.expectError(error.ReadError, read.readVal());
 }
@@ -537,9 +537,9 @@ test "read broken parenthesis" {
 test "read broken parenthesis with elems and spaces" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "   ( ( foo  )  ";
+    const buf = "   ( ( foo  )  ";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     try testing.expectError(error.ReadError, read.readVal());
 }
@@ -547,9 +547,9 @@ test "read broken parenthesis with elems and spaces" {
 test "read tree" {
     var mem = try Mem.init(testing.allocator, memConfig);
     defer mem.deinit();
-    var buf = "(def fib (n) (if (< n 1) 1 (+ (fib (- n 1)) (fib (- n 2)))))";
+    const buf = "(def fib (n) (if (< n 1) 1 (+ (fib (- n 1)) (fib (- n 2)))))";
     var str = std.io.fixedBufferStream(buf);
-    var reader = str.reader();
+    const reader = str.reader();
     var read = valueReader(reader, &mem);
     _ = try read.readVal();
     try testing.expect(true);

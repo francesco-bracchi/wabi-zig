@@ -69,7 +69,7 @@ pub const Builtin = packed struct(Word) {
 test "create builtin operative" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    var b = try Builtin.operative(&mem, 123);
+    const b = try Builtin.operative(&mem, 123);
     try testing.expectEqual(b.tag, .BOpr);
     try testing.expectEqual(b.uid, 123);
 }
@@ -77,7 +77,7 @@ test "create builtin operative" {
 test "create builtin applicative" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    var b = try Builtin.applicative(&mem, 123);
+    const b = try Builtin.applicative(&mem, 123);
     try testing.expectEqual(b.tag, .BApp);
     try testing.expectEqual(b.uid, 123);
 }
@@ -174,11 +174,11 @@ pub const Derived = packed struct {
 test "create derived operative" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    var env = try wabi.env.Env.root(&mem, 1);
+    const env = try wabi.env.Env.root(&mem, 1);
     const name_bin = try wabi.bin.Block.from(&mem, "_");
     const name_sym = try wabi.sym.Sym.from(&mem, name_bin);
     const emp = try wabi.val.Val.from(&mem, wabi.list.VectorList, .{});
-    var opr = try Derived.operative(&mem, .{
+    const opr = try Derived.operative(&mem, .{
         .env = env,
         .env_name = name_sym,
         .pattern = emp,
@@ -190,11 +190,11 @@ test "create derived operative" {
 test "create derived applicative" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    var env = try wabi.env.Env.root(&mem, 1);
+    const env = try wabi.env.Env.root(&mem, 1);
     const name_bin = try wabi.bin.Block.from(&mem, "_");
     const name_sym = try wabi.sym.Sym.from(&mem, name_bin);
     const emp = try wabi.val.Val.from(&mem, wabi.list.VectorList, .{});
-    var opr = try Derived.applicative(&mem, .{
+    const opr = try Derived.applicative(&mem, .{
         .env = env,
         .env_name = name_sym,
         .pattern = emp,
@@ -211,7 +211,7 @@ test "move derived" {
     var ctx = try wabi.copy.Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
 
-    var env = try wabi.env.Env.root(&orig, 1);
+    const env = try wabi.env.Env.root(&orig, 1);
     const name_bin = try wabi.bin.Block.from(&orig, "_");
     const name_sym = try wabi.sym.Sym.from(&orig, name_bin);
     const emp = try wabi.val.Val.from(&orig, wabi.list.VectorList, .{});
@@ -312,7 +312,7 @@ test "copy complex control" {
 
     var out_buf: [1024]u8 = undefined;
     _ = try vm.evalString("(do (def k (prompt :p (control :p ret ret) (+ 2 3))) k)", out_buf[0..1024]);
-    var orig = &vm.mem;
+    const orig = &vm.mem;
     var dest = try Mem.init(std.testing.allocator, .{
         .mem_size = @intCast(orig.space.len),
     });

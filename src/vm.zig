@@ -95,7 +95,7 @@ pub const Vm = struct {
             // gas: usize = 1024 * 1024,
         },
     ) !Vm {
-        var mem = try Mem.init(config.allocator, .{
+        const mem = try Mem.init(config.allocator, .{
             .mem_size = config.mem_size,
         });
         const vm = Self.initFromMem(mem);
@@ -664,7 +664,7 @@ pub const Vm = struct {
         cont = cont_combiner.cont.get(mem);
         mark = cont_combiner.cont_mark.get(mem);
 
-        var rev_meta = cont_combiner.rev_meta.get(mem);
+        const rev_meta = cont_combiner.rev_meta.get(mem);
         meta = try Meta.revConj(rev_meta, mem, meta);
 
         self.ctrl = val;
@@ -741,7 +741,7 @@ pub const Vm = struct {
 
     fn printCtrl(self: *Self, ctrl: Val.Ptr) !void {
         var out = std.io.getStdOut();
-        var out_writer = out.writer();
+        const out_writer = out.writer();
         var value_writer = self.writer(out_writer);
         std.debug.print("ctrl: ", .{});
         try value_writer.writeVal(ctrl);

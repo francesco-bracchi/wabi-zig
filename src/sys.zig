@@ -188,7 +188,7 @@ pub const Sys = struct {
     }
 
     pub fn init(allocator: Allocator, config: struct { num_threads: usize = 4 }) !Self {
-        var mem_pool = try MemPool.init(
+        const mem_pool = try MemPool.init(
             allocator,
             allocator,
             .{
@@ -196,7 +196,7 @@ pub const Sys = struct {
                 .max_len = null,
             },
         );
-        var threads: []Thread = try allocator.alloc(Thread, config.num_threads);
+        const threads: []Thread = try allocator.alloc(Thread, config.num_threads);
 
         return .{
             .mem_pool = mem_pool,
@@ -244,7 +244,7 @@ pub fn stop() !void {
 }
 
 pub fn init(allocator: Allocator, config: anytype) !void {
-    var sys = try Sys.init(allocator, config);
+    const sys = try Sys.init(allocator, config);
     current = sys;
 }
 

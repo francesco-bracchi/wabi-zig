@@ -129,7 +129,7 @@ pub const Val = packed union {
         // std.debug.print("intype: {}\n", .{@TypeOf(in)});
         // return error.OutOfMemory;
         var str = std.io.fixedBufferStream(@constCast(in));
-        var reader = str.reader();
+        const reader = str.reader();
         var read = wabi.read.valueReader(reader, mem);
         return try read.readVal();
     }

@@ -50,7 +50,7 @@ test "new fix" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
     const val = std.crypto.random.int(SInt);
-    var num = try Fix.from(&mem, val);
+    const num = try Fix.from(&mem, val);
     try testing.expect(num.tag == .Fix);
     try testing.expect(num.val == val);
 }

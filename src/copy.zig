@@ -165,7 +165,7 @@ test "copy env0" {
 
     var out_buf: [10]u8 = undefined;
     _ = try vm.evalString("0", out_buf[0..10]);
-    var orig = &vm.mem;
+    const orig = &vm.mem;
     var dest = try Mem.init(std.testing.allocator, .{
         .mem_size = @intCast(orig.space.len),
     });

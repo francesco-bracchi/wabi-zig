@@ -112,7 +112,7 @@ test "acquire/release reuse" {
     var pool = try MemPool.init(std.testing.allocator, std.testing.allocator, .{});
     defer pool.deinit();
     const size = 1024 * 1024;
-    var mem = try pool.acquire(.{ .mem_size = size });
+    const mem = try pool.acquire(.{ .mem_size = size });
     defer pool.release(mem);
     try std.testing.expect(mem.space.len == size);
     try std.testing.expect(mem.space.len == size);

@@ -963,7 +963,7 @@ fn abortOper(
         return error.MarkNotFoundError;
     }
 
-    var app = try Control.new(&vm.mem, .{
+    const app = try Control.new(&vm.mem, .{
         .cont = cont,
         .cont_mark = if (rev_meta) |_| vm.mark else null,
         .rev_meta = rev_meta,
@@ -1031,7 +1031,7 @@ fn load(
         };
         defer file.close();
         var buf_reader = std.io.bufferedReader(file.reader());
-        var in_stream = buf_reader.reader();
+        const in_stream = buf_reader.reader();
         var val_reader = vm.reader(in_stream);
 
         file_exps[0] = doOpr;
@@ -1280,7 +1280,7 @@ fn readString(
 
     const data = str.block.data();
     var stream = std.io.fixedBufferStream(data);
-    var reader = stream.reader();
+    const reader = stream.reader();
     var read = wabi.read.valueReader(reader, mem);
     vm.ctrl = try read.readVal();
     vm.cont = call_cont.pop(&vm.mem);
@@ -1447,7 +1447,7 @@ pub const namedBuiltins = .{
 pub const builtins = blk: {
     const len = namedBuiltins.len;
     var res: [len]Fun = undefined;
-    inline for (namedBuiltins, 0..) |pair, j| {
+    for (namedBuiltins, 0..) |pair, j| {
         res[j] = pair[1];
     }
     break :blk res;
@@ -1456,7 +1456,7 @@ pub const builtins = blk: {
 pub const builtinNames = blk: {
     const len = namedBuiltins.len;
     var res: [len][]const u8 = undefined;
-    inline for (namedBuiltins, 0..) |pair, j| {
+    for (namedBuiltins, 0..) |pair, j| {
         _ = .{ j, pair };
         const n = pair[0];
         res[j] = n[0..];
@@ -1467,7 +1467,7 @@ pub const builtinNames = blk: {
 pub const builtinTags = blk: {
     const len = namedBuiltins.len;
     var res: [len]Tag = undefined;
-    inline for (namedBuiltins, 0..) |pair, j|
+    for (namedBuiltins, 0..) |pair, j|
         res[j] = pair[2];
 
     break :blk res;
@@ -1502,13 +1502,13 @@ pub fn env0(vm: *Vm) !void {
 }
 
 const condOper = blk: {
-    inline for (namedBuiltins, 0..) |pair, j| {
+    for (namedBuiltins, 0..) |pair, j| {
         if (std.mem.eql(u8, pair[0], "if")) break :blk j;
     }
 };
 
 const doOper = blk: {
-    inline for (namedBuiltins, 0..) |pair, j| {
+    for (namedBuiltins, 0..) |pair, j| {
         if (std.mem.eql(u8, pair[0], "do")) break :blk j;
     }
 };
@@ -2100,7 +2100,7 @@ test "abort inside another expression" {
     var vm = try Vm.init(vmConfig);
     defer vm.deinit(); // vm.cpu =  1024;
     var out_buf: [1024]u8 = undefined;
-    var res = try vm.evalString("(* 2 (prompt :k (+ 1 (control :k k 5))))", out_buf[0..1024]);
+    const res = try vm.evalString("(* 2 (prompt :k (+ 1 (control :k k 5))))", out_buf[0..1024]);
     try testing.expect(std.mem.eql(u8, res, "10"));
 }
 
@@ -2108,7 +2108,7 @@ test "resume aborted" {
     var vm = try Vm.init(vmConfig);
     defer vm.deinit(); // vm.cpu =  1024;
     var out_buf: [1024]u8 = undefined;
-    var res = try vm.evalString("(* 2 (prompt :k (+ 1 (control :k k (k 5)))))", out_buf[0..1024]);
+    const res = try vm.evalString("(* 2 (prompt :k (+ 1 (control :k k (k 5)))))", out_buf[0..1024]);
     try testing.expect(std.mem.eql(u8, res, "12"));
 }
 
@@ -2116,7 +2116,7 @@ test "resume aborted twice" {
     var vm = try Vm.init(vmConfig);
     defer vm.deinit(); // vm.cpu =  1024;
     var out_buf: [1024]u8 = undefined;
-    var res = try vm.evalString("(* 2 (prompt :mark (+ 1 (control :mark k (k (k 5))))))", out_buf[0..1024]);
+    const res = try vm.evalString("(* 2 (prompt :mark (+ 1 (control :mark k (k (k 5))))))", out_buf[0..1024]);
     try testing.expect(std.mem.eql(u8, res, "14"));
 }
 
@@ -2124,7 +2124,7 @@ test "regression use case" {
     var vm = try Vm.init(vmConfig);
     defer vm.deinit(); // vm.cpu =  1024;
     var out_buf: [1024]u8 = undefined;
-    var res = try vm.evalString("(prompt :amb (control :amb ret (ret 10)))", out_buf[0..1024]);
+    const res = try vm.evalString("(prompt :amb (control :amb ret (ret 10)))", out_buf[0..1024]);
     try testing.expect(std.mem.eql(u8, res, "10"));
 }
 
@@ -2148,6 +2148,6 @@ test "regression test" {
     var vm = try Vm.init(vmConfig);
     defer vm.deinit(); // vm.cpu =  1024;
     var out_buf: [1024]u8 = undefined;
-    var res = try vm.evalString("(* 2 (prompt :x (prompt :y (+ 1 (control :y ky (+ 2 (control :x kx (ky (kx 3)))))))))", out_buf[0..1024]);
+    const res = try vm.evalString("(* 2 (prompt :x (prompt :y (+ 1 (control :y ky (+ 2 (control :x kx (ky (kx 3)))))))))", out_buf[0..1024]);
     try testing.expect(std.mem.eql(u8, res, "12"));
 }

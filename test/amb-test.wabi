@@ -1,6 +1,7 @@
 
-(test (with-guard (with-amb (amb))
-                  :amb/fail (_resume) :fail)
+(test (with-guard
+       (with-amb (amb))
+       :amb/fail (_resume) :fail)
       :fail)
 
 
@@ -15,10 +16,16 @@
           (list :ok a b)))
       (list :ok 3 5))
 
-(test (with-guard (with-amb
-                   (let (a (amb 1 2 3)
-                           b (amb 4 5 6))
-                     (when (not (= (* a b) 0)) (amb))
-                     (list :ok a b)))
-                  :amb/fail (_resume) :fail)
+(defn a! ()
+  (amb 1 2 3))
+
+(defn b! ()
+  (amb 4 5 6))
+
+(test (with-guard
+       (with-amb
+        (let (a (a!) b (b!))
+          (when (not (= (* a b) 0)) (amb))
+          (list :ok a b)))
+       :amb/fail (_resume) :fail)
       :fail)

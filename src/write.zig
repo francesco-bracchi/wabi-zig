@@ -76,7 +76,7 @@ pub fn ValueWriter(
             self: *Self,
             fix: Fix.Ptr,
         ) !void {
-            var val = fix.val;
+            const val = fix.val;
             // doto implement our own code
             try std.fmt.format(self.writer, "{any}", .{val});
         }
@@ -170,7 +170,7 @@ pub fn ValueWriter(
             const mem = self.mem;
 
             var cont = val.cont.get(mem);
-            var rev_meta = val.rev_meta.get(mem);
+            const rev_meta = val.rev_meta.get(mem);
 
             try self.writer.writeAll("[k ");
             while (cont) |k| {
@@ -312,10 +312,10 @@ test "write symbol" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var bin = try Val.from(&mem, Block, "foo");
-    var sym = try Val.from(&mem, Sym, bin);
+    const bin = try Val.from(&mem, Block, "foo");
+    const sym = try Val.from(&mem, Sym, bin);
     try write.writeVal(sym);
     try testing.expect(std.mem.eql(u8, buf[0..3], "foo"));
 }
@@ -326,10 +326,10 @@ test "write keyword" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var bin = try Val.from(&mem, Block, "foo");
-    var sym = try Val.from(&mem, Kwd, bin);
+    const bin = try Val.from(&mem, Block, "foo");
+    const sym = try Val.from(&mem, Kwd, bin);
     try write.writeVal(sym);
     try testing.expect(std.mem.eql(u8, buf[0..4], ":foo"));
 }
@@ -340,9 +340,9 @@ test "write bin" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var bin = try Val.from(&mem, Block, "foo");
+    const bin = try Val.from(&mem, Block, "foo");
     try write.writeVal(bin);
     try testing.expect(std.mem.eql(u8, buf[0..5], "\"foo\""));
 }
@@ -353,9 +353,9 @@ test "write bin with escape" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var bin = try Val.from(&mem, Block, "a\"");
+    const bin = try Val.from(&mem, Block, "a\"");
     try write.writeVal(bin);
     try testing.expect(std.mem.eql(u8, buf[0..5], &[_]u8{ '"', 'a', '\\', '"', '"' }));
 }
@@ -366,9 +366,9 @@ test "write empty list" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var lst = try Val.from(&mem, VectorList, .{});
+    const lst = try Val.from(&mem, VectorList, .{});
     try write.writeVal(lst);
     try testing.expect(std.mem.eql(u8, buf[0..2], "()"));
 }
@@ -379,10 +379,10 @@ test "write 1 elem list" {
     var buf: [512]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var bin = try Val.from(&mem, Block, "foo");
-    var lst = try Val.from(&mem, VectorList, [_]Val.Ptr{bin});
+    const bin = try Val.from(&mem, Block, "foo");
+    const lst = try Val.from(&mem, VectorList, [_]Val.Ptr{bin});
     try write.writeVal(lst);
     try testing.expect(std.mem.eql(u8, buf[0..7], "(\"foo\")"));
 }
@@ -393,10 +393,10 @@ test "write 2 elem list" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var bin = try Val.from(&mem, Block, "foo");
-    var lst = try Val.from(&mem, VectorList, [_]Val.Ptr{ bin, bin });
+    const bin = try Val.from(&mem, Block, "foo");
+    const lst = try Val.from(&mem, VectorList, [_]Val.Ptr{ bin, bin });
     try write.writeVal(lst);
     try testing.expect(std.mem.eql(u8, buf[0..13], "(\"foo\" \"foo\")"));
 }
@@ -407,9 +407,9 @@ test "write zero" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var fix = try Val.from(&mem, Fix, 0);
+    const fix = try Val.from(&mem, Fix, 0);
     try write.writeVal(fix);
     try testing.expect(std.mem.eql(u8, buf[0..1], "0"));
 }
@@ -420,9 +420,9 @@ test "write single digit" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var fix = try Val.from(&mem, Fix, 7);
+    const fix = try Val.from(&mem, Fix, 7);
     try write.writeVal(fix);
     try testing.expect(std.mem.eql(u8, buf[0..1], "7"));
 }
@@ -433,9 +433,9 @@ test "write two digits" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var fix = try Val.from(&mem, Fix, 21);
+    const fix = try Val.from(&mem, Fix, 21);
     try write.writeVal(fix);
     try testing.expect(std.mem.eql(u8, buf[0..2], "21"));
 }
@@ -446,9 +446,9 @@ test "write negative number" {
     var buf: [256]u8 = undefined;
 
     var str = std.io.fixedBufferStream(&buf);
-    var writer = str.writer();
+    const writer = str.writer();
     var write = valueWriter(writer, &mem);
-    var fix = try Val.from(&mem, Fix, -23);
+    const fix = try Val.from(&mem, Fix, -23);
     try write.writeVal(fix);
     try testing.expect(std.mem.eql(u8, buf[0..3], "-23"));
 }

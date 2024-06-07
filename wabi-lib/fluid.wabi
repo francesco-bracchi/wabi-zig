@@ -25,4 +25,5 @@
 (cmt
  (let (x (param) y (param))
    (flet (x 123 y 22)
-     (x + (y id)) (x id))))
+     (x + (y id))
+     (x id))))

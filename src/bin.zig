@@ -19,7 +19,7 @@ pub const Block = packed struct(Word) {
     pub fn from(mem: *Mem, raw: anytype) !Ptr {
         const self = try mem.one(Block);
         // todo: parameterize this u32?
-        var selfData = try mem.alloc(raw.len);
+        const selfData = try mem.alloc(raw.len);
         self.tag = .BBlk;
         self.len = @as(UInt, @intCast(raw.len));
         for (selfData, 0..) |*b, j| b.* = raw[j];
@@ -46,9 +46,9 @@ pub const Block = packed struct(Word) {
         const self = try mem.one(Block);
         const self_len = left.len + right.len;
         var self_data = try mem.alloc(self_len);
-        var left_data = left.data();
+        const left_data = left.data();
         const left_len = left_data.len;
-        var right_data = right.data();
+        const right_data = right.data();
         for (left_data, 0..) |byte, j| self_data[j] = byte;
         for (right_data, 0..) |byte, j| self_data[j + left_len] = byte;
 

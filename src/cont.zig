@@ -102,7 +102,7 @@ test "copy eval" {
     defer ctx.deinit();
 
     const cur = try Eval.push(null, &orig, .{});
-    var nxt = try ctx.one(cur);
+    const nxt = try ctx.one(cur);
 
     try std.testing.expect(nxt.header.tag == .KEval);
 }

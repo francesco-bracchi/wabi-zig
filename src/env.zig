@@ -119,8 +119,8 @@ pub const Env = packed struct {
         var hash = offsetHash(key.bin_offset, mask);
         if (keys[hash].tag == .Sym) {
             // round robin insert
-            var k0 = keys[hash];
-            var v0 = vals[hash];
+            const k0 = keys[hash];
+            const v0 = vals[hash];
             keys[hash] = key.*;
             vals[hash].set(mem, val);
 
@@ -216,7 +216,7 @@ pub const Env = packed struct {
         // it is allocated next to the env so that when copied
         // this data could be skipped safely, otherwise it must be
         // tagged, or "copy" is not able to skip it
-        var pool = try ctx.dest.many(Word, 2 * cur.cpt);
+        const pool = try ctx.dest.many(Word, 2 * cur.cpt);
         for (pool) |*w| w.* = 0;
         nxt.* = cur.*;
         return nxt;

@@ -10,11 +10,11 @@ pub fn main() !void {
     });
     defer vm.deinit();
     try wabi.builtin.env0(&vm);
-    var std_in = std.io.getStdIn().reader();
+    const std_in = std.io.getStdIn().reader();
     var std_out = std.io.getStdOut().writer();
     var val_reader = vm.reader(std_in);
     var val_writer = vm.writer(std_out);
-    var env0 = vm.env;
+    const env0 = vm.env;
     while (true) : (vm.env = env0) {
         try std_out.writeAll("wg> ");
         const ctrl = val_reader.readVal() catch |e| {

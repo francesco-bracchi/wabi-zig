@@ -11,10 +11,11 @@
  (flet (a 10) (a id)) 10)
 
 (test
- (flet (a 10) (a (always 20))) 10)
+ (flet (a 10) (a inc)) 10)
 
 (test
- (flet (a 10) (a (always 20)) (a id)) 20)
+ (flet (a 10) (a inc) (a id))
+ 11)
 
 (flet (a 10 b 20)
   (test (a id) 10)
