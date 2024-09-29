@@ -1,11 +1,11 @@
 const std = @import("std");
-const wabi = @import("wabi.zig");
-const Tag = wabi.types.Tag;
-const Word = wabi.types.Word;
-const UInt = wabi.types.UInt;
-const Mem = wabi.mem.Mem;
+const types = @import("types.zig");
+const Tag = types.Tag;
+const Word = types.Word;
+const UInt = types.UInt;
+const Mem = @import("mem.zig").Mem;
 const word_align = @alignOf(Word);
-
+const Copy = @import("copy.zig").Copy;
 const testing = std.testing;
 
 pub const Block = packed struct(Word) {
@@ -19,7 +19,7 @@ pub const Block = packed struct(Word) {
     pub fn from(mem: *Mem, raw: anytype) !Ptr {
         const self = try mem.one(Block);
         // todo: parameterize this u32?
-        var selfData = try mem.alloc(raw.len);
+        const selfData = try mem.alloc(raw.len);
         self.tag = .BBlk;
         self.len = @as(UInt, @intCast(raw.len));
         for (selfData, 0..) |*b, j| b.* = raw[j];
@@ -45,15 +45,15 @@ pub const Block = packed struct(Word) {
     ) !Ptr {
         const self = try mem.one(Block);
         const self_len = left.len + right.len;
-        var self_data = try mem.alloc(self_len);
-        var left_data = left.data();
+        const self_data = try mem.alloc(self_len);
+        const left_data = left.data();
         const left_len = left_data.len;
-        var right_data = right.data();
+        const right_data = right.data();
         for (left_data, 0..) |byte, j| self_data[j] = byte;
         for (right_data, 0..) |byte, j| self_data[j + left_len] = byte;
 
         self.tag = .BBlk;
-        self.len = self_len;
+        self.leon = self_len;
         return self;
     }
 
@@ -111,7 +111,7 @@ test "copy binary" {
     defer orig.deinit();
     var dest = try Mem.init(std.testing.allocator, .{ .mem_size = 1_024 });
     defer dest.deinit();
-    var ctx = try wabi.copy.Copy.init(&orig, &dest, std.testing.allocator);
+    var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
     const cur = try Block.from(&orig, "this is a binary");
     const nxt = try ctx.one(cur);

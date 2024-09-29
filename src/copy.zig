@@ -1,22 +1,9 @@
 const std = @import("std");
-const wabi = @import("wabi.zig");
-const Val = wabi.val.Val;
-const Mem = wabi.mem.Mem;
-const Word = wabi.types.Word;
-const Fix = wabi.num.Fix;
-const Sym = wabi.sym.Sym;
-const Kwd = wabi.kwd.Kwd;
-const Block = wabi.bin.Block;
-const VectorList = wabi.list.VectorList;
-const Size = Mem.Size;
+const Mem = @import("mem.zig").Mem;
+const types = @import("types.zig");
+const Word = types.Word;
 const Offset = Mem.Offset;
 const HashMap = std.AutoHashMap(Offset, Offset);
-const Builtin = wabi.comb.Builtin;
-const Env = wabi.env.Env;
-const Derived = wabi.comb.Derived;
-const Control = wabi.comb.Control;
-const cont = wabi.cont;
-const Cont = cont.Cont;
 
 const Allocator = std.mem.Allocator;
 // for the allocator use an arena allocator: all the memory can be freed once the
@@ -56,63 +43,50 @@ pub const Copy = struct {
         self: *Self,
         val: anytype,
     ) Error!@TypeOf(val) {
-        //todo: doesn't have to be Val type, can be tagged?
-        switch (Val.cast(val).tag()) {
-            inline else => |tag| {
-                const T = wabi.type_of.typeOfTag(tag);
-                const v: T.Ptr = @ptrCast(val);
-                if (T.smallness == .always or (T.smallness == .sometimes and v.isSmall())) {
-                    const res = try v.move(self);
-                    return @as(@TypeOf(val), @ptrCast(res));
-                } else {
-                    const orig_offset = self.orig.offsetOf(v);
-
-                    if (self.refs.get(orig_offset)) |dest_offset| {
-                        const res = self.dest.fromOffset(T.Ptr, dest_offset);
-                        return @as(@TypeOf(val), @ptrCast(res));
-                    } else {
-                        // const dest_offset = @as(Offset, @intCast(self.dest.heap));
-                        const res = try v.move(self);
-                        const dest_offset = self.dest.offsetOf(res);
-                        try self.refs.put(orig_offset, dest_offset);
-                        return @as(@TypeOf(val), @ptrCast(res));
-                    }
-                }
-            },
+        const smallness = @typeInfo(@TypeOf(val)).Pointer.child.smallness;
+        if (smallness == .always or (smallness == .sometimes and val.isSmall())) {
+            return try val.move(self);
         }
-    }
+        const orig_offset = self.orig.offsetOf(val);
 
-    pub fn memMove(self: *Self, val: anytype) !@TypeOf(val) {
-        const T = @typeInfo(@TypeOf(val)).Pointer.child;
-        const next = try self.dest.one(T);
-        next.* = val.*;
-        return next;
+        if (self.refs.get(orig_offset)) |dest_offset| {
+            return self.dest.fromOffset(@TypeOf(val), dest_offset);
+        }
+
+        const res = try val.move(self);
+        const dest_offset = self.dest.offsetOf(res);
+        try self.refs.put(orig_offset, dest_offset);
+        return res;
     }
 
     pub fn copy(
         self: *Self,
         val: anytype,
     ) !void {
-        switch (Val.cast(val).tag()) {
-            inline else => |tag| {
-                const T = wabi.type_of.typeOfTag(tag);
-                const res = try T.copy(@as(T.Ptr, @ptrCast(val)), self);
-                self.scan += res;
-            },
-        }
+        const delta = try val.copy(self);
+        self.scan += delta;
+    }
+
+    pub inline fn memMove(self: *Self, val: anytype) !@TypeOf(val) {
+        const T = @typeInfo(@TypeOf(val)).Pointer.child;
+        const next = try self.dest.one(T);
+        next.* = val.*;
+        return next;
     }
 
     pub inline fn one(self: *Self, val: anytype) !@TypeOf(val) {
-        const res = try self.many(.{val});
+        const vals = [1]@TypeOf(val){val};
+        const res = try self.many(vals);
         return res[0];
     }
 
     // many is used to avoid duplicates in subtrees common to all the copied stuff
     pub fn many(self: *Self, vals: anytype) !@TypeOf(vals) {
+        const E = @typeInfo(@TypeOf(vals)).Array.child;
         var res: @TypeOf(vals) = undefined;
         self.reset();
         inline for (vals, 0..) |v, j| res[j] = try self.add(v);
-        try self.run();
+        try self.run(E);
         return res;
     }
 
@@ -131,11 +105,39 @@ pub const Copy = struct {
         }
     }
 
-    pub fn run(self: *Self) !void {
+    pub fn run(self: *Self, comptime E: type) !void {
+        const EPtr = *align(@sizeOf(Word)) (@typeInfo(E).Pointer.child);
         while (self.scan < self.dest.heap) {
-            const candidate = self.dest.fromOffset(*Word, @as(Offset, @intCast(self.scan)));
+            const candidate = self.dest.fromOffset(EPtr, @as(Offset, @intCast(self.scan)));
             try self.copy(candidate);
         }
+    }
+};
+
+const Elem = struct {
+    a: Word,
+    b: Word,
+
+    pub const smallness = .never;
+
+    const Self = @This();
+    pub const Ptr = *align(@sizeOf(Word)) Self;
+
+    pub inline fn move(
+        self: Ptr,
+        ctx: anytype,
+    ) !Ptr {
+        const res = try ctx.dest.one(Self);
+        res.a = self.a;
+        res.b = self.b;
+        return res;
+    }
+
+    pub inline fn copy(
+        self: Ptr,
+        _: anytype,
+    ) !Word {
+        return @sizeOf(Self) + Mem.binSize(self.len);
     }
 };
 
@@ -146,36 +148,10 @@ test "copy hits the refs table" {
     defer dest.deinit();
     var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
-    const cur = try Val.from(&orig, Block, "this is a binary");
+    const cur = try orig.one(Elem);
+    cur.a = 100;
+    cur.b = 200;
     const nxt = try ctx.move(cur);
     const nxt_ = try ctx.move(cur);
     try std.testing.expect(nxt == nxt_);
-}
-
-const Vm = wabi.vm.Vm;
-
-const vmConfig = .{
-    .allocator = std.testing.allocator,
-    .mem_size = 10 * 1_024,
-};
-
-test "copy env0" {
-    var vm = try Vm.init(vmConfig);
-    defer vm.deinit();
-
-    var out_buf: [10]u8 = undefined;
-    _ = try vm.evalString("0", out_buf[0..10]);
-    var orig = &vm.mem;
-    var dest = try Mem.init(std.testing.allocator, .{
-        .mem_size = @intCast(orig.space.len),
-    });
-    defer dest.deinit();
-
-    const cur = Val.cast(vm.env);
-    var ctx = try Copy.init(orig, &dest, std.testing.allocator);
-    defer ctx.deinit();
-
-    const nxt = try ctx.one(cur);
-    //todo: do real tests
-    try std.testing.expect(nxt != cur);
 }

@@ -16,10 +16,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
-        .name = "wabivm",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/main.zig" },
+        .name = "wabi-zig",
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -28,6 +26,18 @@ pub fn build(b: *std.Build) void {
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(exe);
+
+    const gen = b.addExecutable(.{
+        .name = "genesis",
+        .root_source_file = b.path("src/genesis.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // This declares intent for the executable to be installed into the
+    // standard location when the user invokes the "install" step (the default
+    // step when running `zig build`).
+    b.installArtifact(gen);
 
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
@@ -52,27 +62,11 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
-    var unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/test.zig" },
+    const unit_tests = b.addTest(.{
+        .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
     });
-
-    const coverage = b.option(bool, "test_coverage", "Generate test coverage") orelse false;
-
-    if (coverage) {
-        // with kcov
-        unit_tests.setExecCmd(&[_]?[]const u8{
-            // --test-cmd kcov --test-cmd wabi-out --test-cmd --exclude-pattern=std,test_runner.zig --test-cmd-bin
-            "kcov",
-            "cover", // output dir for kcov
-            //"--path-strip-level=3", // any kcov flags can be specified here
-            "--exclude-pattern=std,test_runner.zig",
-            null, // to get zig to use the --test-cmd-bin flag
-        });
-    }
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
 
@@ -81,19 +75,4 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
-
-    const genesis = b.addExecutable(.{
-        .name = "genesis",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/genesis.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    b.installArtifact(genesis);
-    const genesis_cmd = b.addRunArtifact(genesis);
-    genesis_cmd.step.dependOn(b.getInstallStep());
-    const genesis_step = b.step("genesis", "Creates the genesis repl");
-    genesis_step.dependOn(&genesis_cmd.step);
 }

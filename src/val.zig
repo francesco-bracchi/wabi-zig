@@ -133,6 +133,37 @@ pub const Val = packed union {
         var read = wabi.read.valueReader(reader, mem);
         return try read.readVal();
     }
+
+    // pub fn move(
+    //     self: *Self,
+    //     val: anytype,
+    // ) Error!@TypeOf(val) {
+    //     //todo: doesn't have to be Val type, can be tagged?
+    //     switch (Val.cast(val).tag()) {
+    //         inline else => |tag| {
+    //             const T = wabi.type_of.typeOfTag(tag);
+    //             const v: T.Ptr = @ptrCast(val);
+    //             if (T.smallness == .always or (T.smallness == .sometimes and v.isSmall())) {
+    //                 const res = try v.move(self);
+    //                 return @as(@TypeOf(val), @ptrCast(res));
+    //             } else {
+    //                 const orig_offset = self.orig.offsetOf(v);
+
+    //                 if (self.refs.get(orig_offset)) |dest_offset| {
+    //                     const res = self.dest.fromOffset(T.Ptr, dest_offset);
+    //                     return @as(@TypeOf(val), @ptrCast(res));
+    //                 } else {
+    //                     // const dest_offset = @as(Offset, @intCast(self.dest.heap));
+    //                     const res = try v.move(self);
+    //                     const dest_offset = self.dest.offsetOf(res);
+    //                     try self.refs.put(orig_offset, dest_offset);
+    //                     return @as(@TypeOf(val), @ptrCast(res));
+    //                 }
+    //             }
+    //         },
+    //     }
+    // }
+
 };
 
 test "new fix" {

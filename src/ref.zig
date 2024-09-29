@@ -4,7 +4,6 @@ const Word = wabi.types.Word;
 const Tag = wabi.types.Tag;
 const Mem = wabi.mem.Mem;
 const Offset = Mem.Offset;
-const Val = wabi.val.Val;
 
 const testing = std.testing;
 const word_align = @alignOf(Word);
@@ -59,9 +58,9 @@ pub fn SmallRefTo(comptime T: type, comptime args: anytype) type {
             ) @typeInfo(@TypeOf(ctx)).Pointer.child.Error!void {
                 switch (self.tag) {
                     .Nul => {},
-                    inline else => |t| {
-                        const TT = wabi.type_of.typeOfTag(t);
-                        _ = try TT.copy(@as(TT.Ptr, @ptrCast(self)), ctx);
+                    else => {
+                        const myself: ChildPtr = @ptrCast(self);
+                        try ctx.copy(myself);
                     },
                 }
             }
@@ -93,13 +92,8 @@ pub fn SmallRefTo(comptime T: type, comptime args: anytype) type {
             self: Ptr,
             ctx: anytype,
         ) @typeInfo(@TypeOf(ctx)).Pointer.child.Error!void {
-            const myself = @as(Val.Ptr, @ptrCast(self));
-            switch (myself.tag()) {
-                inline else => |t| {
-                    const TT = wabi.type_of.typeOfTag(t);
-                    _ = try TT.copy(@as(TT.Ptr, @ptrCast(self)), ctx);
-                },
-            }
+            const myself: ChildPtr = @ptrCast(self);
+            try ctx.copy(myself);
         }
     };
 }
@@ -150,9 +144,9 @@ pub fn HugeRefTo(comptime T: type, comptime args: anytype) type {
                 switch (self.tag) {
                     .Nul => {},
                     inline else => {
-                        const orig = ctx.orig.fromOffset(Val.Ptr, self.offset);
+                        const orig = ctx.orig.fromOffset(ChildPtr, self.offset);
                         const dest = try ctx.move(orig);
-                        self.set(ctx.dest, @ptrCast(dest));
+                        self.set(ctx.dest, dest);
                     },
                 }
             }
@@ -189,8 +183,8 @@ pub fn HugeRefTo(comptime T: type, comptime args: anytype) type {
             self: Ptr,
             ctx: anytype,
         ) @typeInfo(@TypeOf(ctx)).Pointer.child.Error!void {
-            const orig = ctx.orig.fromOffset(*T, self.offset);
-            const dest = @as(*T, @ptrCast(try ctx.move(Val.cast(orig))));
+            const orig = ctx.orig.fromOffset(ChildPtr, self.offset);
+            const dest = try ctx.move(orig);
             self.offset = ctx.dest.offsetOf(dest);
         }
     };
@@ -251,21 +245,23 @@ pub fn MixedRefTo(comptime T: type, comptime args: anytype) type {
                 self: Ptr,
                 ctx: anytype,
             ) @typeInfo(@TypeOf(ctx)).Pointer.child.Error!void {
-                switch (@as(Val.Ptr, @ptrCast(self)).tag()) {
+                const tag = @as(Tag, @enumFromInt(@intFromEnum(self.a_ref.tag)));
+                switch (tag) {
                     .Nul => {},
                     .Ref => {
-                        const orig = ctx.orig.fromOffset(Val.Ptr, self.a_ref.offset);
-                        const dest = try ctx.move(Val.cast(orig));
+                        const orig = ctx.orig.fromOffset(ChildPtr, self.a_ref.offset);
+                        const dest = try ctx.move(orig);
                         self.a_ref.offset = ctx.dest.offsetOf(dest);
                     },
-                    inline else => |t| {
-                        const TT = wabi.type_of.typeOfTag(t);
-                        _ = try TT.copy(@as(TT.Ptr, @ptrCast(self)), ctx);
+                    else => {
+                        const orig: ChildPtr = @ptrCast(self);
+                        try ctx.copy(orig);
                     },
                 }
             }
         };
     }
+
     return packed union {
         word: Word,
         a_ref: packed struct(Word) {
@@ -309,38 +305,87 @@ pub fn MixedRefTo(comptime T: type, comptime args: anytype) type {
             const tag = @as(Tag, @enumFromInt(@intFromEnum(self.a_ref.tag)));
             switch (tag) {
                 .Ref => {
-                    const orig = ctx.orig.fromOffset(Val.Ptr, self.a_ref.offset);
-                    const dest = try ctx.move(Val.cast(orig));
+                    const orig = ctx.orig.fromOffset(ChildPtr, self.a_ref.offset);
+                    const dest = try ctx.move(orig);
                     self.a_ref.offset = ctx.dest.offsetOf(dest);
                 },
-                inline else => |t| {
-                    const TT = wabi.type_of.typeOfTag(t);
-                    _ = try TT.copy(@as(TT.Ptr, @ptrCast(self)), ctx);
+                else => {
+                    const orig: ChildPtr = @ptrCast(self);
+                    _ = try ctx.copy(orig);
                 },
             }
         }
     };
 }
 
-pub const Ref = RefTo(Val, .{ .nullable = false });
-
 // TODO: tests
+
+pub const Small = packed struct(Word) {
+    val: Word,
+
+    const Self = @This();
+
+    pub const Ptr = *align(word_align) Self;
+
+    pub const smallness = .always;
+
+    pub inline fn move(
+        self: Ptr,
+        ctx: anytype,
+    ) !Ptr {
+        return try ctx.memMove(self);
+    }
+
+    pub fn copy(
+        _: Ptr,
+        _: anytype,
+    ) !Word {
+        return @sizeOf(Self);
+    }
+};
+pub const Big = packed struct {
+    a: Word,
+    b: Word,
+
+    const Self = @This();
+
+    pub const Ptr = *align(word_align) Self;
+
+    pub const smallness = .never;
+
+    pub inline fn move(
+        self: Ptr,
+        ctx: anytype,
+    ) !Ptr {
+        return try ctx.memMove(self);
+    }
+
+    pub fn copy(
+        _: Ptr,
+        _: anytype,
+    ) !Word {
+        return @sizeOf(Self);
+    }
+};
 
 test "ref to a small value (i.e. word fitting) is inlined" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    const n0 = try Val.from(&mem, wabi.num.Fix, 10);
-    var ref = try mem.one(Ref);
+    const n0 = try mem.one(Small);
+    n0.val = 13;
+    var ref = try mem.one(RefTo(Small, .{ .nullable = false }));
     ref.set(&mem, n0);
     try testing.expect(n0 != ref.get(&mem));
-    try testing.expectEqual(n0.word, ref.get(&mem).word);
+    try testing.expectEqual(n0.val, ref.get(&mem).val);
 }
 
 test "ref to big entity is an actual reference" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    const n0 = try Val.from(&mem, wabi.bin.Block, "foo bar baz");
-    var ref = try mem.one(Ref);
+    const n0 = try mem.one(Big);
+    n0.a = 123;
+    n0.b = 567;
+    var ref = try mem.one(RefTo(Big, .{ .nullable = false }));
     ref.set(&mem, n0);
     try testing.expectEqual(n0, ref.get(&mem));
 }

@@ -1,9 +1,10 @@
 const std = @import("std");
-const wabi = @import("wabi.zig");
-const Tag = wabi.types.Tag;
-const Word = wabi.types.Word;
-const SInt = wabi.types.SInt;
-const Mem = wabi.mem.Mem;
+const types = @import("types.zig");
+const Tag = types.Tag;
+const Word = types.Word;
+const SInt = types.SInt;
+const Mem = @import("mem.zig").Mem;
+const Copy = @import("copy.zig").Copy;
 
 const word_align = @alignOf(Word);
 
@@ -17,6 +18,8 @@ pub const Fix = packed struct(Word) {
 
     pub const Ptr = *align(word_align) Self;
 
+    pub const smallness = .always;
+
     pub fn from(
         mem: *Mem,
         val: anytype,
@@ -28,8 +31,6 @@ pub const Fix = packed struct(Word) {
         };
         return self;
     }
-
-    pub const smallness = .always;
 
     pub inline fn move(
         self: Ptr,
@@ -50,7 +51,7 @@ test "new fix" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
     const val = std.crypto.random.int(SInt);
-    var num = try Fix.from(&mem, val);
+    const num = try Fix.from(&mem, val);
     try testing.expect(num.tag == .Fix);
     try testing.expect(num.val == val);
 }
@@ -61,10 +62,10 @@ test "copy fix" {
     var dest = try Mem.init(std.testing.allocator, .{ .mem_size = 1_024 });
     defer dest.deinit();
 
-    var ctx = try wabi.copy.Copy.init(&orig, &dest, std.testing.allocator);
+    var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
-    const cur = try wabi.val.Val.from(&orig, Fix, 129);
+    const cur = try Fix.from(&orig, 129);
     const nxt = try ctx.one(cur);
     try std.testing.expect(nxt != cur);
-    try std.testing.expect(nxt.word == cur.word);
+    try std.testing.expect(nxt.val == cur.val);
 }

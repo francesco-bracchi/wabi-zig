@@ -1,6 +1,5 @@
 const std = @import("std");
-const wabi = @import("wabi.zig");
-const Word = wabi.types.Word;
+const Word = @import("types.zig").Word;
 const testing = std.testing;
 
 const Config = struct {

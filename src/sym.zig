@@ -1,14 +1,12 @@
 const std = @import("std");
 const testing = std.testing;
-const wabi = @import("wabi.zig");
-const types = wabi.types;
-
-const Mem = wabi.mem.Mem;
-const Offset = wabi.mem.Mem.Offset;
-const Block = wabi.bin.Block;
-
-const Word = wabi.types.Word;
-const Tag = wabi.types.Tag;
+const types = @import("types.zig");
+const Mem = @import("mem.zig").Mem;
+const Offset = Mem.Offset;
+const Block = @import("bin.zig").Block;
+const Copy = @import("copy.zig").Copy;
+const Word = types.Word;
+const Tag = types.Tag;
 const word_align = @alignOf(Word);
 
 pub const Sym = packed struct(Word) {
@@ -77,22 +75,74 @@ test "create a symbol" {
     try testing.expect(symbol.bin_offset == m0);
 }
 
+const Val = packed union {
+    tagged: packed struct(Word) {
+        tag: Tag,
+        _: types.UInt,
+    },
+    sym: Sym,
+    bin: Block,
+
+    const Self = @This();
+
+    pub const Ptr = *align(word_align) Self;
+    pub const smallness = .sometimes;
+
+    pub fn isSmall(self: Ptr) bool {
+        switch (self.tagged.tag) {
+            .Sym => {
+                return true;
+            },
+            .BBlk => {
+                return self.bin.isSmall();
+            },
+            else => unreachable,
+        }
+    }
+
+    pub fn move(self: Ptr, ctx: anytype) !Ptr {
+        switch (self.tagged.tag) {
+            .Sym => {
+                return @ptrCast(try self.sym.move(ctx));
+            },
+            .BBlk => {
+                return @ptrCast(try self.bin.move(ctx));
+            },
+            else => unreachable,
+        }
+    }
+
+    pub fn copy(self: Ptr, ctx: anytype) !Word {
+        switch (self.tagged.tag) {
+            .Sym => {
+                return try self.sym.copy(ctx);
+            },
+            .BBlk => {
+                return try self.bin.copy(ctx);
+            },
+            else => unreachable,
+        }
+    }
+};
+
 test "copy symbol" {
     var orig = try Mem.init(std.testing.allocator, .{ .mem_size = 1_024 });
     defer orig.deinit();
     var dest = try Mem.init(std.testing.allocator, .{ .mem_size = 1_024 });
     defer dest.deinit();
-    var ctx = try wabi.copy.Copy.init(&orig, &dest, std.testing.allocator);
+    var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
 
     const str = try Block.from(&orig, "sym");
     const cur = try Sym.from(&orig, str);
-    const nxt = try ctx.one(cur);
+    const val: Val.Ptr = @ptrCast(cur);
 
-    try std.testing.expect(nxt.tag == .Sym);
+    const nxt = try ctx.one(val);
+
+    try std.testing.expect(nxt.sym.tag == .Sym);
     try std.testing.expect(std.mem.eql(
         u8,
-        cur.binOf(&orig).data(),
-        nxt.binOf(&dest).data(),
+        val.sym.binOf(&orig).data(),
+        nxt.sym.binOf(&dest).data(),
     ));
 }

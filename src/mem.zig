@@ -1,9 +1,8 @@
 const std = @import("std");
-const wabi = @import("wabi.zig");
-
-const Word = wabi.types.Word;
+const types = @import("types.zig");
+const Word = types.Word;
 const Allocator = std.mem.Allocator;
-const UniversalHash = wabi.hash.UniversalHash;
+const UniversalHash = @import("hash.zig").UniversalHash;
 const shift_for_word = @ctz(@as(u64, @intCast(@sizeOf(Word))));
 const word_size = @sizeOf(Word);
 const word_align = @alignOf(Word);
@@ -21,7 +20,7 @@ pub const Mem = struct {
 
     const Self = @This();
 
-    pub const Size = wabi.types.UInt;
+    pub const Size = types.UInt;
     pub const Offset = Size;
 
     // const HashMap = std.StringHashMap(
@@ -190,24 +189,24 @@ pub const Mem = struct {
         self.len = @intCast(self.space.len);
     }
 
-    pub fn dbg(
-        self: *Self,
-    ) void {
-        //todo: 2 must be inferred from Word size
-        const shft = 2;
-        for (0..(self.heap >> shft)) |j| {
-            const offset = @as(Offset, @intCast(j)) << shft;
-            const bs = self.fromOffset(*[4]u8, offset);
-            const val = self.fromOffset(wabi.val.Val.Ptr, offset);
-            std.debug.print("{: >5} {b:0>27} {b:0>5} {}\n", .{
-                offset,
-                val.tagged._,
-                @intFromEnum(val.tagged.tag_),
-                val.tag(),
-            });
-            _ = .{ bs, val };
-        }
-    }
+    // pub fn dbg(
+    //     self: *Self,
+    // ) void {
+    //     //todo: 2 must be inferred from Word size
+    //     const shft = 2;
+    //     for (0..(self.heap >> shft)) |j| {
+    //         const offset = @as(Offset, @intCast(j)) << shft;
+    //         const bs = self.fromOffset(*[4]u8, offset);
+    //         const val = self.fromOffset(wabi.val.Val.Ptr, offset);
+    //         std.debug.print("{: >5} {b:0>27} {b:0>5} {}\n", .{
+    //             offset,
+    //             val.tagged._,
+    //             @intFromEnum(val.tagged.tag_),
+    //             val.tag(),
+    //         });
+    //         _ = .{ bs, val };
+    //     }
+    // }
 };
 
 ///// TESTING
@@ -226,8 +225,8 @@ test "fail" {
 
 const TT = packed struct {
     len: Mem.Size,
-    tag: wabi.types.Tag,
-    wrd: wabi.types.Word,
+    tag: types.Tag,
+    wrd: types.Word,
 
     const Ptr = *align(word_align) TT;
 };
@@ -255,7 +254,7 @@ test "offset" {
     defer mem.deinit();
     const m0 = mem.heap;
     _ = try mem.one(TT);
-    var tt = try mem.one(TT);
+    const tt = try mem.one(TT);
     const os = mem.offsetOf(tt);
     try testing.expectEqual(os, @as(Mem.Size, @intCast(m0 + 2 * word_size)));
     try testing.expectEqual(mem.heap, m0 + 4 * word_size);
@@ -267,7 +266,7 @@ test "from offset" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
     _ = try mem.one(TT);
-    var tt = try mem.one(TT);
+    const tt = try mem.one(TT);
     const os = mem.offsetOf(tt);
     tt.* = tt0;
     const tt1 = mem.fromOffset(TT.Ptr, os);
@@ -280,7 +279,7 @@ test "allocate empty u8" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
     const m0 = mem.heap;
-    var x = try mem.alloc(0);
+    const x = try mem.alloc(0);
     try testing.expect(mem.heap == m0);
     try testing.expect(x.len == 0);
 }
@@ -289,7 +288,7 @@ test "allocate u8 within a word" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
     const m0 = mem.heap;
-    var x = try mem.alloc(1);
+    const x = try mem.alloc(1);
     try testing.expect(mem.heap == m0 + word_size);
     try testing.expect(x.len == 1);
 }
@@ -297,14 +296,14 @@ test "allocate u8 within a word" {
 test "allocate u8 with more than a word" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
-    var x = try mem.alloc(11);
+    const x = try mem.alloc(11);
     try testing.expect(x.len == 11);
 }
 
 test "allocate u8 exact words" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
-    var x = try mem.alloc(16);
+    const x = try mem.alloc(16);
     try testing.expect(x.len == 16);
 }
 
@@ -316,7 +315,7 @@ const II = packed struct {
 
     pub fn from(mem: *Mem, raw: []u8) !Ptr {
         const res = try mem.one(Self);
-        var selfData = try mem.alloc(raw.len);
+        const selfData = try mem.alloc(raw.len);
         for (selfData, 0..) |*b, j| b.* = raw[j];
         res.len = raw.len;
         return res;
@@ -334,8 +333,8 @@ const II = packed struct {
 test "intern" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 25 * 1_024 });
     defer mem.deinit();
-    var x = try mem.intern(II, @constCast("t"));
-    var y = try mem.intern(II, @constCast("t"));
+    const x = try mem.intern(II, @constCast("t"));
+    const y = try mem.intern(II, @constCast("t"));
     try testing.expect(x == y);
 }
 
