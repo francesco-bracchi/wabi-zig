@@ -18,7 +18,7 @@ const word_align = @alignOf(Word);
 const shift_for_word = @ctz(@as(u64, @intCast(@sizeOf(Word))));
 
 // todo: make this parametric on the type `Val`, so it can be tested indipendently
-pub fn EnvOf(T: type) type {
+pub fn Env(T: type) type {
     return packed struct {
         tag: Tag,
         prv: Offset,
@@ -304,7 +304,7 @@ const Val = packed union {
     elem: Elem,
     sym: Sym,
     blk: Block,
-    env: EnvOf(Val),
+    env: Env(Val),
 
     const Self = @This();
 
@@ -368,13 +368,14 @@ const Val = packed union {
     }
 };
 
-const Env = EnvOf(Elem);
+const EnvE = Env(Elem);
+const EnvV = Env(Val);
 
 test "create env" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
 
-    const env = try Env.root(&mem, 3);
+    const env = try EnvE.root(&mem, 3);
     try testing.expect(env.cpt == 8);
     try testing.expect(env.prv == mem.offsetOf(env));
 }
@@ -382,7 +383,7 @@ test "create env" {
 test "actually extend env " {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    const env = try Env.root(&mem, 3);
+    const env = try EnvE.root(&mem, 3);
     const env1 = try env.extend(&mem, 4);
     try testing.expect(env1.cpt == 16);
     try testing.expect(env1.prv == mem.offsetOf(env));
@@ -393,7 +394,7 @@ test "env def" {
     defer mem.deinit();
 
     const sym = try Sym.fromString(&mem, "foo");
-    const env = try Env.root(&mem, 3);
+    const env = try EnvE.root(&mem, 3);
     const num = try Elem.from(&mem, 123);
     try env.def(&mem, sym, num);
     try testing.expect(env.cpt == 8);
@@ -405,7 +406,7 @@ test "env double def ()" {
     defer mem.deinit();
 
     const sym = try Sym.fromString(&mem, "foo");
-    const env = try Env.root(&mem, 3);
+    const env = try EnvE.root(&mem, 3);
     const three = try Elem.from(&mem, 3);
     const five = try Elem.from(&mem, 5);
     try env.def(&mem, sym, three);
@@ -417,7 +418,7 @@ test "env grow & def" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 4_096 });
     defer mem.deinit();
 
-    const env = try Env.root(&mem, 1);
+    const env = try EnvE.root(&mem, 1);
     const sym0 = try Sym.fromString(&mem, "foo");
     const sym1 = try Sym.fromString(&mem, "bar");
     const sym2 = try Sym.fromString(&mem, "baz");
@@ -435,7 +436,7 @@ test "lookup on empty" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 4_096 });
     defer mem.deinit();
 
-    const env = try Env.root(&mem, 3);
+    const env = try EnvE.root(&mem, 3);
     const sym = try Sym.fromString(&mem, "foo");
 
     const res = env.lookup(&mem, sym);
@@ -446,7 +447,7 @@ test "simple lookup" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 4_096 });
     defer mem.deinit();
 
-    const env = try Env.root(&mem, 3);
+    const env = try EnvE.root(&mem, 3);
     const sym = try Sym.fromString(&mem, "foo");
     const num = try Elem.from(&mem, 3);
     try env.def(&mem, sym, num);
@@ -459,7 +460,7 @@ test "lookup in deeper env" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 4_096 });
     defer mem.deinit();
 
-    const env0 = try Env.root(&mem, 3);
+    const env0 = try EnvE.root(&mem, 3);
     const env = try env0.extend(&mem, 4);
     const sym = try Sym.fromString(&mem, "foo");
     const num = try Elem.from(&mem, 3);
@@ -476,7 +477,7 @@ test "copy env" {
     var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
 
-    const cur: Val.Ptr = @ptrCast(try EnvOf(Val).root(&orig, 3));
+    const cur: Val.Ptr = @ptrCast(try Env(Val).root(&orig, 3));
     const sym = try Sym.fromString(&orig, "foo");
     const num: Val.Ptr = @ptrCast(try Elem.from(&orig, 3));
     try cur.env.def(&orig, sym, num);
@@ -495,7 +496,7 @@ test "copy grown env" {
     var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
 
-    const cur: Val.Ptr = @ptrCast(try EnvOf(Val).root(&orig, 1));
+    const cur: Val.Ptr = @ptrCast(try EnvV.root(&orig, 1));
     const sym0 = try Sym.fromString(&orig, "foo");
     const sym1 = try Sym.fromString(&orig, "bar");
     const e0: Val.Ptr = @ptrCast(try Elem.from(&orig, 3));
@@ -527,8 +528,8 @@ test "copy env previous" {
     var ctx = try Copy.init(&orig, &dest, std.testing.allocator);
     defer ctx.deinit();
 
-    const cur_root: Val.Ptr = @ptrCast(try EnvOf(Val).root(&orig, 2));
-    const cur: Val.Ptr = @ptrCast(try EnvOf(Val).extend(&cur_root.env, &orig, 3));
+    const cur_root: Val.Ptr = @ptrCast(try EnvV.root(&orig, 2));
+    const cur: Val.Ptr = @ptrCast(try EnvV.extend(&cur_root.env, &orig, 3));
     const nxt = try ctx.one(cur);
 
     try testing.expect(nxt.env.prv != cur.env.prv);

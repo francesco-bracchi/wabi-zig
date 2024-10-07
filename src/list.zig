@@ -12,7 +12,7 @@ const word_align = @alignOf(Word);
 const testing = std.testing;
 
 // todo: make this parametric on the type `Val`, so it can be tested indipendently
-pub fn VectorListOf(comptime T: type) type {
+pub fn VectorList(comptime T: type) type {
     const ChildPtr = *align(word_align) T;
 
     return packed struct(Word) {
@@ -402,7 +402,7 @@ const Val = packed union {
         _: types.UInt,
     },
     elem: Elem,
-    list: VectorListOf(Val),
+    list: VectorList(Val),
 
     pub const smallness = .sometimes;
 
@@ -432,13 +432,13 @@ const Val = packed union {
     }
 };
 
-const VectorList = VectorListOf(Elem);
+const VectorListElem = VectorList(Elem);
 
 test "create empty list" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
     const m0 = mem.heap;
-    const lst = try VectorList.from(&mem, .{});
+    const lst = try VectorListElem.from(&mem, .{});
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 0);
     try testing.expectEqual(mem.heap, m0 + 1 * @sizeOf(Word));
@@ -450,7 +450,7 @@ test "create non empty list" {
     const elem = try Elem.from(&mem, 37);
     const elems = [_]Elem.Ptr{elem};
     const m0 = mem.heap;
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 1);
     try testing.expectEqual(mem.heap, m0 + 2 * @sizeOf(Word));
@@ -461,7 +461,7 @@ test "create non empty list" {
 test "list left and right of an empty list is null" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    const lst = try VectorList.from(&mem, .{});
+    const lst = try VectorListElem.from(&mem, .{});
     const l = lst.left(&mem);
     const r = lst.right(&mem);
     try testing.expectEqual(l, null);
@@ -474,7 +474,7 @@ test "list left and right of a list" {
     const n0 = try Elem.from(&mem, 21);
     const n1 = try Elem.from(&mem, 37);
     const elems = [_]Elem.Ptr{ n0, n1 };
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     const l = lst.left(&mem);
     const r = lst.right(&mem);
     try testing.expectEqual(l.?.val, n0.val);
@@ -486,7 +486,7 @@ test "list push left" {
     defer mem.deinit();
     const elem = try Elem.from(&mem, 10);
     const elems = [_]Elem.Ptr{elem};
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     const elem1 = try Elem.from(&mem, 20);
     const lst1 = try lst.pushLeft(&mem, elem1);
     try testing.expectEqual(lst1.tag, .LVec);
@@ -500,7 +500,7 @@ test "list push right" {
     defer mem.deinit();
     const elem = try Elem.from(&mem, 10);
     const elems = [_]Elem.Ptr{elem};
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     const elem1 = try Elem.from(&mem, 20);
     const lst1 = try lst.pushRight(&mem, elem1);
     try testing.expectEqual(lst1.tag, .LVec);
@@ -512,7 +512,7 @@ test "list push right" {
 test "list pop of empty is null" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    const lst = try VectorList.from(&mem, .{});
+    const lst = try VectorListElem.from(&mem, .{});
     const l1 = try lst.popLeft(&mem);
     try testing.expectEqual(l1, null);
     const r1 = try lst.popRight(&mem);
@@ -526,7 +526,7 @@ test "list pop  on list" {
     const n0 = try Elem.from(&mem, 21);
     const n1 = try Elem.from(&mem, 37);
     const elems = [_]Elem.Ptr{ n0, n1 };
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     const l = try lst.popLeft(&mem);
     const r = try lst.popRight(&mem);
     const xl = l.?.get(&mem, 0);
@@ -540,7 +540,7 @@ test "list set" {
     defer mem.deinit();
     const elem = try Elem.from(&mem, 10);
     const elems = [_]Elem.Ptr{ elem, elem, elem, elem };
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     const elem1 = try Elem.from(&mem, 20);
     try lst.set(&mem, 1, elem1);
     const v0 = lst.get(&mem, 0);
@@ -554,7 +554,7 @@ test "list set" {
 test "list destructLeft empty" {
     var mem = try Mem.init(testing.allocator, .{ .mem_size = 1_024 });
     defer mem.deinit();
-    const lst = try VectorList.from(&mem, .{});
+    const lst = try VectorListElem.from(&mem, .{});
     const dst = try lst.destructLeft(&mem);
     try testing.expectEqual(dst, null);
 }
@@ -566,7 +566,7 @@ test "list destructLeft nonempty" {
     const n0 = try Elem.from(&mem, 21);
     const n1 = try Elem.from(&mem, 37);
     const elems = [_]Elem.Ptr{ n0, n1 };
-    const lst = try VectorList.from(&mem, elems);
+    const lst = try VectorListElem.from(&mem, elems);
     const dst = try lst.destructLeft(&mem);
     try testing.expectEqual(dst.?.left.val, n0.val);
     try testing.expectEqual(dst.?.right.tag, .LVec);
@@ -582,7 +582,7 @@ test "concat array" {
     const ns0 = [_]Elem.Ptr{ n0, n1 };
     var ns1 = [_]Elem.Ptr{ n1, n0, n0 };
 
-    const lst0 = try VectorList.from(&mem, ns0);
+    const lst0 = try VectorListElem.from(&mem, ns0);
     const lst = try lst0.concatA(&mem, ns1[0..3]);
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 5);
@@ -603,8 +603,8 @@ test "concat" {
     const ns0 = [_]Elem.Ptr{ n0, n1 };
     const ns1 = [_]Elem.Ptr{ n1, n0, n0 };
 
-    const lst0 = try VectorList.from(&mem, ns0);
-    const lst1 = try VectorList.from(&mem, ns1);
+    const lst0 = try VectorListElem.from(&mem, ns0);
+    const lst1 = try VectorListElem.from(&mem, ns1);
     const lst = try lst0.concat(&mem, lst1);
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 5);
@@ -624,7 +624,7 @@ test "sub" {
     const n1 = try Elem.from(&mem, 37);
     const ns0 = [_]Elem.Ptr{ n0, n1, n1, n0, n0 };
 
-    const lst0 = try VectorList.from(&mem, ns0);
+    const lst0 = try VectorListElem.from(&mem, ns0);
     const lst = try lst0.sub(&mem, 1, 3);
     try testing.expectEqual(lst.tag, .LVec);
     try testing.expectEqual(lst.len, 2);
@@ -644,7 +644,7 @@ test "copy list" {
     const n0 = try Elem.from(&orig, 21);
     const n1 = try Elem.from(&orig, 37);
     const ns0 = [_]Elem.Ptr{ n0, n1 };
-    const cur = try VectorList.from(&orig, ns0);
+    const cur = try VectorListElem.from(&orig, ns0);
     const nxt = try ctx.one(cur);
 
     try testing.expectEqual(nxt.get(&dest, 0).val, n0.val);
